@@ -241,6 +241,32 @@
             "attempts": 5,
             "result": "review"
           }
+        },
+        {
+          "photo": null,
+          "text": "Nosso carro, aonde ?",
+          "alts": [
+            {
+              "text": "Alabama",
+              "correct": false
+            },
+            {
+              "text": "África do sul",
+              "correct": true
+            },
+            {
+              "text": "Sergipe",
+              "correct": false
+            },
+            {
+              "text": "Casa",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 4,
+            "result": "review"
+          }
         }
       ]
     }
