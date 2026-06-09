@@ -104,8 +104,8 @@
             }
           ],
           "cfg": {
-            "attempts": 0,
-            "result": "score"
+            "attempts": 5,
+            "result": "review"
           }
         }
       ]
