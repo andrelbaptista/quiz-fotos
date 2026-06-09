@@ -561,7 +561,7 @@ function enterApp(){
   shell.style.display='flex';
   buildHomeToolbar();
   renderQuizList();
-  if(isAdminRole()&&hasCfg())loadFromGitHub();
+  loadFromGitHub(); // all users load from GitHub on login
   updateTopbar();
   checkUrlQuiz();
   checkInstallBanner();
@@ -633,25 +633,17 @@ function loadCfgForm(){
 }
 function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
 function loadFromGitHub(){
-  if(!hasCfg())return;
   setSyncBar('loading','⏳ Carregando...');
   var cfg=getCfg();
-  var rawUrl='https://raw.githubusercontent.com/'+cfg.user+'/'+cfg.repo+'/main/'+cfg.file+'?t='+Date.now();
-  // First get SHA via API
-  fetch(ghUrl(),{headers:ghH(),cache:'no-store'})
+  // Use hardcoded repo info for reading (public repo, no token needed)
+  var repoUser=cfg.user||'andrelbaptista';
+  var repoName=cfg.repo||'quiz-fotos';
+  var repoFile=cfg.file||'quiz-data.json';
+  var rawUrl='https://raw.githubusercontent.com/'+repoUser+'/'+repoName+'/main/'+repoFile+'?t='+Date.now();
+  // Load via raw URL directly (no token needed for public repo)
+  fetch(rawUrl,{cache:'no-store'})
     .then(function(r){
       if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      return r.json();
-    })
-    .then(function(data){
-      if(!data)return;
-      ghSha=data.sha;
-      // Load content via raw URL (faster, no base64)
-      return fetch(rawUrl,{cache:'no-store'});
-    })
-    .then(function(r){
-      if(!r)return;
       if(!r.ok)throw new Error('HTTP '+r.status);
       return r.json();
     })
@@ -663,17 +655,45 @@ function loadFromGitHub(){
       toast('Dados carregados!');
     })
     .catch(function(e){setSyncBar('error','❌ '+e.message);});
+  // Also get SHA for future saves (needs token)
+  if(hasCfg()){
+    fetch(ghUrl(),{headers:ghH(),cache:'no-store'})
+      .then(function(r){if(r.ok)return r.json();})
+      .then(function(data){if(data&&data.sha)ghSha=data.sha;})
+      .catch(function(){});
+  }
+}
+function _loadFromGitHub_unused(){
+  if(!hasCfg())return;
+  setSyncBar('loading','⏳ Carregando...');
+  var cfg=getCfg();
+  var rawUrl='https://raw.githubusercontent.com/'+cfg.user+'/'+cfg.repo+'/main/'+cfg.file+'?t='+Date.now();
+  fetch(ghUrl(),{headers:ghH(),cache:'no-store'})
+    .then(function(r){
+      if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .then(function(data){if(data&&data.sha)ghSha=data.sha;})
+    .catch(function(){});
 }
 function syncToGitHub(){
   if(!hasCfg()){
     setSyncBar('unsynced','⚠️ GitHub não configurado — vá em Admin → GitHub');
     return;
   }
+
   setSyncBar('loading','⏳ Salvando no GitHub...');
-  var cnt=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));
-  var body={message:'Atualizar quizzes',content:cnt};
-  if(ghSha)body.sha=ghSha;
-  fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)})
+  // Always get latest SHA before saving to avoid conflicts
+  fetch(ghUrl(),{headers:ghH(),cache:'no-store'})
+    .then(function(r){if(r.ok)return r.json();return null;})
+    .then(function(data){
+      if(data&&data.sha)ghSha=data.sha;
+      var cnt=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));
+      var body={message:'Atualizar quizzes',content:cnt};
+      if(ghSha)body.sha=ghSha;
+      return fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)});
+    })
     .then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();})
     .then(function(data){
       ghSha=data.content.sha;isDirty=false;
