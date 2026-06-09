@@ -273,6 +273,24 @@
             "attempts": 0,
             "result": "score"
           }
+        },
+        {
+          "photo": null,
+          "text": "xxxxxxxxxxxxx",
+          "alts": [
+            {
+              "text": "xxxxxxxxxx",
+              "correct": true
+            },
+            {
+              "text": "xxxxxxxxxxxxxx",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 6,
+            "result": "review"
+          }
         }
       ]
     }
