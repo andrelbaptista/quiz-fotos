@@ -211,6 +211,36 @@
             "attempts": 0,
             "result": "score"
           }
+        },
+        {
+          "photo": null,
+          "text": "Esse cara sou eu",
+          "alts": [
+            {
+              "text": "Vô Eny",
+              "correct": false
+            },
+            {
+              "text": "André antes de 2020",
+              "correct": false
+            },
+            {
+              "text": "Ratinho",
+              "correct": false
+            },
+            {
+              "text": "Seu Lopes",
+              "correct": true
+            },
+            {
+              "text": "Carol",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 5,
+            "result": "review"
+          }
         }
       ]
     }
