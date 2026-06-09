@@ -595,8 +595,28 @@ function getCfg(){try{var s=JSON.parse(localStorage.getItem('quiz_cfg')||'{}');r
 function hasCfg(){return true;}
 function ghH(){var c=getCfg();return{'Authorization':'token '+c.token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};}
 function ghUrl(){var c=getCfg();return'https://api.github.com/repos/'+c.user+'/'+c.repo+'/contents/'+c.file;}
-function saveGHConfig(){var c={user:document.getElementById('cfg-user').value.trim(),repo:document.getElementById('cfg-repo').value.trim(),file:document.getElementById('cfg-file').value.trim()||'quiz-data.json',token:document.getElementById('cfg-token').value.trim()};if(!c.user||!c.repo||!c.token){toast('Preencha os campos.');return;}localStorage.setItem('quiz_cfg',JSON.stringify(c));toast('GitHub configurado!');loadFromGitHub();}
-function loadCfgForm(){var c=getCfg();document.getElementById('cfg-user').value=c.user||'';document.getElementById('cfg-repo').value=c.repo||'';document.getElementById('cfg-file').value=c.file||'quiz-data.json';document.getElementById('cfg-token').value=c.token||'';}
+function saveGHConfig(){
+  var c={
+    user:document.getElementById('cfg-user').value.trim(),
+    repo:document.getElementById('cfg-repo').value.trim(),
+    file:document.getElementById('cfg-file').value.trim()||'quiz-data.json',
+    token:document.getElementById('cfg-token').value.trim()
+  };
+  if(!c.user||!c.repo||!c.token){toast('Preencha os campos.');return;}
+  localStorage.removeItem('quiz_cfg'); // clear old first
+  localStorage.setItem('quiz_cfg',JSON.stringify(c));
+  toast('GitHub configurado!');
+  loadFromGitHub();
+}
+function loadCfgForm(){
+  var c=getCfg();
+  var fields=['cfg-user','cfg-repo','cfg-file','cfg-token'];
+  fields.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('cfg-user').value=c.user||'';
+  document.getElementById('cfg-repo').value=c.repo||'';
+  document.getElementById('cfg-file').value=c.file||'quiz-data.json';
+  document.getElementById('cfg-token').value=c.token||'';
+}
 function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
 function loadFromGitHub(){if(!hasCfg())return;setSyncBar('loading','⏳ Carregando...');fetch(ghUrl(),{headers:ghH(),cache:'no-store'}).then(function(r){if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(!data)return;ghSha=data.sha;var json=JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,'')))));quizzes=json.quizzes||[];saveLS();isDirty=false;renderQuizList();setSyncBar('synced','✓ Sincronizado');toast('Dados carregados!');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
 function syncToGitHub(){if(!hasCfg()){toast('Configure o GitHub no painel Admin.');return;}setSyncBar('loading','⏳ Salvando...');var content=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));var body={message:'Atualizar quizzes',content:content};if(ghSha)body.sha=ghSha;fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)}).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();}).then(function(data){ghSha=data.content.sha;isDirty=false;setSyncBar('synced','✓ Salvo');toast('Salvo no GitHub! ✓');renderQuizList();}).catch(function(e){setSyncBar('error','✗ '+e.message);toast('Erro: '+e.message);});}
