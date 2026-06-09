@@ -632,7 +632,38 @@ function loadCfgForm(){
   document.getElementById('cfg-token').value=c.token||'';
 }
 function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
-function loadFromGitHub(){if(!hasCfg())return;setSyncBar('loading','⏳ Carregando...');fetch(ghUrl(),{headers:ghH(),cache:'no-store'}).then(function(r){if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(!data)return;ghSha=data.sha;var json=JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,'')))));quizzes=json.quizzes||[];saveLS();isDirty=false;renderQuizList();setSyncBar('synced','✓ Sincronizado');toast('Dados carregados!');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
+function loadFromGitHub(){
+  if(!hasCfg())return;
+  setSyncBar('loading','⏳ Carregando...');
+  var cfg=getCfg();
+  var rawUrl='https://raw.githubusercontent.com/'+cfg.user+'/'+cfg.repo+'/main/'+cfg.file+'?t='+Date.now();
+  // First get SHA via API
+  fetch(ghUrl(),{headers:ghH(),cache:'no-store'})
+    .then(function(r){
+      if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .then(function(data){
+      if(!data)return;
+      ghSha=data.sha;
+      // Load content via raw URL (faster, no base64)
+      return fetch(rawUrl,{cache:'no-store'});
+    })
+    .then(function(r){
+      if(!r)return;
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.json();
+    })
+    .then(function(json){
+      if(!json)return;
+      quizzes=json.quizzes||[];
+      saveLS();isDirty=false;renderQuizList();
+      setSyncBar('synced','✅ Sincronizado — '+quizzes.reduce(function(a,q){return a+(q.questions?q.questions.length:0);},0)+' questões');
+      toast('Dados carregados!');
+    })
+    .catch(function(e){setSyncBar('error','❌ '+e.message);});
+}
 function syncToGitHub(){
   if(!hasCfg()){
     setSyncBar('unsynced','⚠️ GitHub não configurado — vá em Admin → GitHub');
