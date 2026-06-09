@@ -664,21 +664,22 @@ function showScreen(name){
   document.getElementById('screen-'+name).classList.add('active');
   var titles={home:'Quiz de Fotos',add:editingQIdx!==null?'Editar questão':'Nova questão',quiz:'Quiz',results:'Resultado',admin:'Painel Admin','quiz-detail':'Questões'};
   document.getElementById('screen-title').textContent=titles[name]||'';
+  var act=document.getElementById('topbar-actions');
+  var icon=currentUser?( currentUser.role==='masters'?'👑':currentUser.role==='admin'?'🛠':'👤'):'👤';
+  var badge=currentUser?('<div class="user-badge '+(isAdminRole()?'admin':'player')+'" onclick="confirmLogout()" title="Sair">'+icon+' '+esc(currentUser.username)+' <span style="font-size:10px;opacity:0.7;">sair</span></div>'):'';
   if(name==='admin'){
-    // show github tab only for master
     document.getElementById('atab-github').style.display=isMasters()?'inline-flex':'none';
     showAdminTab('quizzes');
     renderAdminQuizList();
+    act.innerHTML='<button class="btn btn-sm" onclick="goHome()">← Início</button>'+badge;
+  } else if(name==='quiz-detail'){
+    act.innerHTML='<button class="btn btn-sm" onclick="showScreen(\'admin\')">← Admin</button>'+badge;
+  } else if(name==='add'){
+    act.innerHTML='<button class="btn btn-sm" onclick="cancelEditQuestion()">← Voltar</button>'+badge;
+  } else {
+    updateTopbar();
   }
   document.querySelector('.scroll-area').scrollTop=0;
-  updateTopbar();
-  // always show back button
-  var act=document.getElementById('topbar-actions');
-  if(name==='admin'){
-    var icon=currentUser.role==='masters'?'👑':currentUser.role==='admin'?'🛠':'👤';
-    act.innerHTML='<button class="btn btn-sm" onclick="goHome()">← Início</button>'+
-      '<div class="user-badge '+(isAdminRole()?'admin':'player')+'" onclick="confirmLogout()" title="Sair">'+icon+' '+esc(currentUser.username)+' <span style="font-size:10px;opacity:0.7;">sair</span></div>';
-  }
 }
 
 function showAdminTab(tab){
