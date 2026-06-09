@@ -564,7 +564,18 @@ function updateTopbar(){
     '</div>';
 }
 function confirmLogout(){showModal('<h2>Sair?</h2><p>Você será desconectado.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="doLogout()">Sair</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');}
-function doLogout(){currentUser=null;localStorage.removeItem('quiz_session');closeModal();document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-user').value='';document.getElementById('login-pass').value='';switchLoginTab('login');}
+function doLogout(){
+  currentUser=null;
+  localStorage.removeItem('quiz_session');
+  localStorage.removeItem('quiz_v5'); // clear quiz cache so fresh load on next login
+  quizzes=[];ghSha=null;isDirty=false;
+  closeModal();
+  document.getElementById('app-shell').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  switchLoginTab('login');
+}
 
 /* ── DATA MODEL ──
   quizzes = [{id, name, createdBy, accessAll, accessUsers:[], questions:[{photo,text,alts,cfg}]}]
@@ -1025,7 +1036,8 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(
 (async function(){
   await initUsers();
   loadLS();
-  try{var sess=JSON.parse(localStorage.getItem('quiz_session')||'null');if(sess){var found=getUsers().find(function(u){return u.username===sess.username;});if(found){currentUser={username:found.username,role:found.role||'player'};enterApp();return;}}}catch(e){}
+  // Always start at login screen - clear any previous session
+  localStorage.removeItem('quiz_session');
   document.getElementById('login-screen').style.display='flex';
 })();
 
