@@ -814,7 +814,7 @@ function saveQuizMeta(id){
   quiz.accessAll=document.getElementById('quiz-access-all').checked;
   quiz.accessUsers=[];
   if(!quiz.accessAll){document.querySelectorAll('.quiz-user-cb:checked').forEach(function(cb){quiz.accessUsers.push(cb.value);});}
-  isDirty=true;saveLS();closeModal();renderQuizList();toast('Quiz atualizado!');
+  isDirty=true;saveLS();closeModal();renderQuizList();toast('Sincronizando...');setTimeout(function(){syncToGitHub();},500);
 }
 function confirmDeleteQuiz(id){
   var quiz=getQuiz(id);if(!quiz)return;
@@ -823,15 +823,8 @@ function confirmDeleteQuiz(id){
 function deleteQuiz(id){
   quizzes=quizzes.filter(function(q){return q.id!==id;});
   isDirty=true;saveLS();closeModal();renderQuizList();
-  setTimeout(function(){
-    showModal('<h2>Quiz excluído</h2>'+
-      '<div style="background:var(--amber-bg);border:0.5px solid var(--amber-text);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">'+
-        '<strong style="color:var(--amber-text);">⚠️ Último passo!</strong>'+
-        '<p style="color:var(--amber-text);font-size:13px;margin-top:4px;">Toque em <strong>☁ Salvar</strong> para sincronizar a exclusão com o GitHub.</p>'+
-      '</div>'+
-      '<div class="row"><button class="btn btn-green btn-sm" onclick="closeModal();syncToGitHub()">☁ Salvar no GitHub agora</button>'+
-      '<button class="btn btn-sm" onclick="closeModal()">Depois</button></div>');
-  },300);
+  toast('Quiz excluído! Sincronizando...');
+  setTimeout(function(){syncToGitHub();},500);
 }
 
 /* ── QUIZ DETAIL (manage questions) ── */
@@ -865,7 +858,7 @@ function renderQuestionList(){
 }
 function moveQ(i,dir){var quiz=getQuiz(activeQuizId);if(!quiz)return;var j=i+dir;if(j<0||j>=quiz.questions.length)return;var t=quiz.questions[i];quiz.questions[i]=quiz.questions[j];quiz.questions[j]=t;isDirty=true;saveLS();renderQuestionList();}
 function confirmDeleteQ(i){showModal('<h2>Excluir questão '+(i+1)+'?</h2><div class="row"><button class="btn btn-danger btn-sm" onclick="deleteQ('+i+')">Excluir</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');}
-function deleteQ(i){var quiz=getQuiz(activeQuizId);if(!quiz)return;quiz.questions.splice(i,1);isDirty=true;saveLS();closeModal();renderQuestionList();toast('Questão excluída.');}
+function deleteQ(i){var quiz=getQuiz(activeQuizId);if(!quiz)return;quiz.questions.splice(i,1);isDirty=true;saveLS();closeModal();renderQuestionList();toast('Questão excluída! Sincronizando...');setTimeout(function(){syncToGitHub();},500);}
 
 /* ── ADD / EDIT QUESTION ── */
 var editingQIdx=null,currentAlts=[],currentPhotoData=null;
@@ -887,21 +880,10 @@ function finalizeQuiz(){
     return;
   }
   isDirty=true;saveLS();
-  var qname=quiz.name;var qcount=quiz.questions.length;
   activeQuizId=null;editingQIdx=null;currentPhotoData=null;currentAlts=[];
   goHome();
-  setTimeout(function(){
-    showModal('<h2>Quiz salvo! ✅</h2>'+
-      '<p>O quiz <strong>'+esc(qname)+'</strong> foi salvo com '+qcount+' questão'+(qcount>1?'es':'')+' neste dispositivo.</p>'+
-      '<div style="background:var(--amber-bg);border:0.5px solid var(--amber-text);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">'+
-        '<strong style="color:var(--amber-text);">⚠️ Último passo!</strong>'+
-        '<p style="color:var(--amber-text);font-size:13px;margin-top:4px;">Toque em <strong>☁ Salvar</strong> para sincronizar com o GitHub e disponibilizar em todos os dispositivos.</p>'+
-      '</div>'+
-      '<div class="row">'+
-        '<button class="btn btn-green btn-sm" onclick="closeModal();syncToGitHub()">☁ Salvar no GitHub agora</button>'+
-        '<button class="btn btn-sm" onclick="closeModal()">Depois</button>'+
-      '</div>');
-  },400);
+  toast('Quiz salvo! Sincronizando com GitHub...');
+  setTimeout(function(){syncToGitHub();},500);
 }
 function cancelQuizCreation(){
   showModal('<h2>Cancelar quiz?</h2><p>Todas as questões adicionadas serão perdidas.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="doCancelQuizCreation()">Cancelar quiz</button><button class="btn btn-sm" onclick="closeModal()">Continuar editando</button></div>');
@@ -927,8 +909,10 @@ function saveQuestion(){
   var quiz=getQuiz(activeQuizId);if(!quiz)return;
   var q={photo:currentPhotoData,text:document.getElementById('q-text').value.trim(),alts:currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}),cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value}};
   if(editingQIdx!==null){
-    quiz.questions[editingQIdx]=q;toast('Questão atualizada!');
+    quiz.questions[editingQIdx]=q;
     editingQIdx=null;currentPhotoData=null;currentAlts=[];isDirty=true;saveLS();resetAddForm();openQuizDetail(activeQuizId);
+    toast('Questão atualizada! Salvando no GitHub...');
+    setTimeout(function(){syncToGitHub();},500);
   } else {
     quiz.questions.push(q);isDirty=true;saveLS();
     editingQIdx=null;currentPhotoData=null;currentAlts=[];
