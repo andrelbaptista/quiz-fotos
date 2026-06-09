@@ -163,6 +163,32 @@
             "attempts": 5,
             "result": "review"
           }
+        },
+        {
+          "photo": null,
+          "text": "Era criança e não sabia, quem é o bonitão da foto ?",
+          "alts": [
+            {
+              "text": "Felipe",
+              "correct": false
+            },
+            {
+              "text": "João Felipe",
+              "correct": true
+            },
+            {
+              "text": "Bruno",
+              "correct": false
+            },
+            {
+              "text": "Ian",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 4,
+            "result": "review"
+          }
         }
       ]
     }
