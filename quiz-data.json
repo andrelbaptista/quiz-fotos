@@ -267,6 +267,32 @@
             "attempts": 3,
             "result": "review"
           }
+        },
+        {
+          "photo": null,
+          "text": "Bebi muito.",
+          "alts": [
+            {
+              "text": "Jose Carlos e Mônica",
+              "correct": true
+            },
+            {
+              "text": "André e Jack",
+              "correct": false
+            },
+            {
+              "text": "Carol e Bruno",
+              "correct": false
+            },
+            {
+              "text": "Antônio e Marlene",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 6,
+            "result": "review"
+          }
         }
       ]
     }
