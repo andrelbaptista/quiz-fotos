@@ -590,7 +590,7 @@ function loadLS(){try{var d=localStorage.getItem('quiz_v5');if(d){var p=JSON.par
   if(old){var qs=JSON.parse(old);if(Array.isArray(qs)&&qs.length){quizzes=[{id:Date.now()+'',name:'Quiz importado',createdBy:'admin',accessAll:true,accessUsers:[],questions:qs}];saveLS();}}}catch(e){quizzes=[];}}
 
 /* ── GITHUB ── */
-var DEFAULT_CFG={user:'andrelbaptista',repo:'quiz-fotos',file:'quiz-data.json',token:'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'};
+var DEFAULT_CFG={user:'andrelbaptista',repo:'quiz-fotos',file:'quiz-data.json',token:'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'};
 function getCfg(){try{var s=JSON.parse(localStorage.getItem('quiz_cfg')||'{}');return(s.user&&s.token)?s:DEFAULT_CFG;}catch(e){return DEFAULT_CFG;}}
 function hasCfg(){return true;}
 function ghH(){var c=getCfg();return{'Authorization':'token '+c.token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};}
