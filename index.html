@@ -229,7 +229,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <div class="card" id="quiz-detail-header"></div>
       <div class="toolbar">
         <button class="btn btn-primary btn-sm" onclick="goAddQuestion()">+ Nova questão</button>
-        <button class="btn btn-green btn-sm" id="btn-start-detail" onclick="startQuizFromDetail()">▶ Iniciar quiz</button>
+        <button class="btn btn-green btn-sm" onclick="finalizeQuiz()">✅ Finalizar quiz</button>
+        <button class="btn btn-danger btn-sm" onclick="cancelQuizCreation()">✕ Cancelar quiz</button>
       </div>
       <div id="q-list"></div>
       <div id="empty-questions" class="empty" style="display:none;">
@@ -276,8 +277,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         </div>
         <div class="divider"></div>
         <div class="row">
-          <button class="btn btn-primary" id="btn-save-q" onclick="saveQuestion()">✓ Salvar</button>
-          <button class="btn" onclick="cancelEditQuestion()">Cancelar</button>
+          <button class="btn btn-primary" id="btn-save-q" onclick="saveQuestion()">✓ Salvar questão</button>
+          <button class="btn btn-danger" onclick="discardQuestion()">✗ Descartar</button>
         </div>
       </div>
     </div>
@@ -536,7 +537,7 @@ function syncToGitHub(){if(!hasCfg()){toast('Configure o GitHub no painel Admin.
 function setSyncBar(type,msg){['sync-bar'].forEach(function(id){var el=document.getElementById(id);if(!el)return;el.style.display='flex';el.className='sync-bar '+type;el.innerHTML=(type==='loading'?'<span class="spinner"></span> ':'')+msg;});}
 
 /* ── SCREENS ── */
-function showScreen(name){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById('screen-'+name).classList.add('active');var titles={home:'Quiz de Fotos',add:editingQIdx!==null?'Editar questão':'Nova questão',quiz:'Quiz',results:'Resultado',admin:'Administração','quiz-detail':'Questões'};document.getElementById('screen-title').textContent=titles[name]||'';if(name==='admin'){renderUsersList();if(isMasters()){document.getElementById('github-config-card').style.display='block';loadCfgForm();}else{document.getElementById('github-config-card').style.display='none';}}document.querySelector('.scroll-area').scrollTop=0;updateTopbar();}
+function showScreen(name){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById('screen-'+name).classList.add('active');var titles={home:'Quiz de Fotos',add:editingQIdx!==null?'Editar questão':'Nova questão',quiz:'Quiz',results:'Resultado',admin:'Administração','quiz-detail':'Questões'};document.getElementById('screen-title').textContent=titles[name]||'';if(name==='admin'){renderUsersList();if(isMasters()){document.getElementById('github-config-card').style.display='block';loadCfgForm();}else{document.getElementById('github-config-card').style.display='none';}document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="goHome()">← Início</button>';}document.querySelector('.scroll-area').scrollTop=0;updateTopbar();}
 function goHome(){activeQuizId=null;showScreen('home');renderQuizList();}
 function buildHomeToolbar(){
   var tb=document.getElementById('home-toolbar');tb.innerHTML='';
@@ -689,6 +690,32 @@ var editingQIdx=null,currentAlts=[],currentPhotoData=null;
 function goAddQuestion(){if(!activeQuizId)return;editingQIdx=null;resetAddForm();showScreen('add');}
 function editQuestion(i){editingQIdx=i;var q=getQuiz(activeQuizId).questions[i];currentPhotoData=q.photo||null;currentAlts=q.alts.map(function(a){return{text:a.text,correct:a.correct};});document.getElementById('q-text').value=q.text||'';document.getElementById('cfg-attempts').value=(q.cfg&&q.cfg.attempts!==undefined)?q.cfg.attempts:0;document.getElementById('cfg-result').value=(q.cfg&&q.cfg.result)?q.cfg.result:'score';var prev=document.getElementById('photo-preview'),rmw=document.getElementById('photo-remove-wrap');if(currentPhotoData){prev.src=currentPhotoData;prev.style.display='block';rmw.style.display='flex';}else{prev.style.display='none';rmw.style.display='none';}renderAlts();showScreen('add');}
 function cancelEditQuestion(){editingQIdx=null;currentPhotoData=null;currentAlts=[];resetAddForm();openQuizDetail(activeQuizId);}
+function discardQuestion(){
+  editingQIdx=null;currentPhotoData=null;currentAlts=[];
+  resetAddForm();
+  var quiz=getQuiz(activeQuizId);
+  if(quiz) document.getElementById('screen-title').textContent='Nova questão'+(quiz.questions.length?' ('+quiz.questions.length+' salva'+(quiz.questions.length>1?'s':'')+')'  :'');
+  toast('Questão descartada.');
+}
+function finalizeQuiz(){
+  var quiz=getQuiz(activeQuizId);
+  if(!quiz){goHome();return;}
+  if(!quiz.questions||!quiz.questions.length){
+    showModal('<h2>Quiz vazio</h2><p>Adicione pelo menos uma questão antes de finalizar.</p><div class="row"><button class="btn btn-primary btn-sm" onclick="closeModal()">OK</button></div>');
+    return;
+  }
+  isDirty=true;saveLS();
+  toast('Quiz "'+quiz.name+'" finalizado com '+quiz.questions.length+' questão'+(quiz.questions.length>1?'es':'')+'!');
+  activeQuizId=null;goHome();
+}
+function cancelQuizCreation(){
+  showModal('<h2>Cancelar quiz?</h2><p>Todas as questões adicionadas serão perdidas.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="doCancelQuizCreation()">Cancelar quiz</button><button class="btn btn-sm" onclick="closeModal()">Continuar editando</button></div>');
+}
+function doCancelQuizCreation(){
+  var quiz=getQuiz(activeQuizId);
+  if(quiz) quizzes=quizzes.filter(function(q){return q.id!==activeQuizId;});
+  isDirty=true;saveLS();closeModal();activeQuizId=null;goHome();toast('Quiz cancelado.');
+}
 function resetAddForm(){document.getElementById('q-text').value='';document.getElementById('photo-input').value='';document.getElementById('photo-preview').style.display='none';document.getElementById('photo-remove-wrap').style.display='none';document.getElementById('cfg-attempts').value='0';document.getElementById('cfg-result').value='score';currentPhotoData=null;currentAlts=[];addAlt();addAlt();}
 var OUT_W=960,OUT_H=720,OUT_Q=0.88;
 function resizeAndFinalize(dataUrl,cb){var img=new Image();img.onload=function(){var sc=Math.min(OUT_W/img.naturalWidth,OUT_H/img.naturalHeight,1);var dw=Math.round(img.naturalWidth*sc),dh=Math.round(img.naturalHeight*sc);var c=document.createElement('canvas');c.width=OUT_W;c.height=OUT_H;var ctx=c.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,OUT_W,OUT_H);ctx.drawImage(img,(OUT_W-dw)/2,(OUT_H-dh)/2,dw,dh);cb(c.toDataURL('image/jpeg',OUT_Q));};img.src=dataUrl;}
@@ -704,8 +731,17 @@ function saveQuestion(){
   if(!currentAlts.some(function(a){return a.correct;})){toast('Marque a alternativa correta.');return;}
   var quiz=getQuiz(activeQuizId);if(!quiz)return;
   var q={photo:currentPhotoData,text:document.getElementById('q-text').value.trim(),alts:currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}),cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value}};
-  if(editingQIdx!==null){quiz.questions[editingQIdx]=q;toast('Questão atualizada!');}else{quiz.questions.push(q);toast('Questão adicionada!');}
-  editingQIdx=null;currentPhotoData=null;currentAlts=[];isDirty=true;saveLS();resetAddForm();openQuizDetail(activeQuizId);
+  if(editingQIdx!==null){
+    quiz.questions[editingQIdx]=q;toast('Questão atualizada!');
+    editingQIdx=null;currentPhotoData=null;currentAlts=[];isDirty=true;saveLS();resetAddForm();openQuizDetail(activeQuizId);
+  } else {
+    quiz.questions.push(q);isDirty=true;saveLS();
+    editingQIdx=null;currentPhotoData=null;currentAlts=[];
+    resetAddForm();
+    toast('Questão salva! Adicione mais ou toque em Finalizar.');
+    // stay on add screen - show question count
+    document.getElementById('screen-title').textContent='Nova questão ('+(quiz.questions.length+' salva'+(quiz.questions.length>1?'s':''))+')';
+  }
 }
 
 /* ── FILE INPUT ── */
