@@ -356,6 +356,13 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
             <button class="btn btn-sm" onclick="syncToGitHub()">☁ Salvar dados</button>
             <button class="btn btn-sm" onclick="loadFromGitHub()">⬇ Recarregar</button>
           </div>
+          <div class="divider"></div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">💾 Backup local</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:10px;">Exporte os quizzes para um arquivo no seu dispositivo como backup de segurança.</p>
+          <div class="row">
+            <button class="btn btn-sm btn-green" onclick="exportBackup()">⬇ Exportar backup</button>
+            <label class="btn btn-sm btn-warning" style="cursor:pointer;">⬆ Importar backup<input type="file" accept=".json" onchange="importBackup(this)" style="display:none;"></label>
+          </div>
         </div>
       </div>
     </div>
@@ -626,10 +633,29 @@ function loadCfgForm(){
 }
 function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
 function loadFromGitHub(){if(!hasCfg())return;setSyncBar('loading','⏳ Carregando...');fetch(ghUrl(),{headers:ghH(),cache:'no-store'}).then(function(r){if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(!data)return;ghSha=data.sha;var json=JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,'')))));quizzes=json.quizzes||[];saveLS();isDirty=false;renderQuizList();setSyncBar('synced','✓ Sincronizado');toast('Dados carregados!');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
-function syncToGitHub(){if(!hasCfg()){toast('Configure o GitHub no painel Admin.');return;}setSyncBar('loading','⏳ Salvando...');var content=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));var body={message:'Atualizar quizzes',content:content};if(ghSha)body.sha=ghSha;fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)}).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();}).then(function(data){ghSha=data.content.sha;isDirty=false;
-    var ub=document.getElementById('unsaved-banner');if(ub)ub.style.display='none';
-    setSyncBar('synced','✓ Salvo no GitHub — todos os dispositivos sincronizados');
-    toast('Salvo no GitHub! ✓');renderQuizList();}).catch(function(e){setSyncBar('error','✗ '+e.message);toast('Erro: '+e.message);});}
+function syncToGitHub(){
+  if(!hasCfg()){
+    setSyncBar('unsynced','⚠️ GitHub não configurado — vá em Admin → GitHub');
+    return;
+  }
+  setSyncBar('loading','⏳ Salvando no GitHub...');
+  var cnt=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));
+  var body={message:'Atualizar quizzes',content:cnt};
+  if(ghSha)body.sha=ghSha;
+  fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)})
+    .then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();})
+    .then(function(data){
+      ghSha=data.content.sha;isDirty=false;
+      setSyncBar('synced','✅ Salvo no GitHub — todos os dispositivos sincronizados');
+      toast('✅ Salvo no GitHub!');
+      renderQuizList();
+    })
+    .catch(function(e){
+      setSyncBar('error','❌ Erro: '+e.message);
+      toast('❌ Erro GitHub: '+e.message,4000);
+    });
+}
+
 function setSyncBar(type,msg){['sync-bar'].forEach(function(id){var el=document.getElementById(id);if(!el)return;el.style.display='flex';el.className='sync-bar '+type;el.innerHTML=(type==='loading'?'<span class="spinner"></span> ':'')+msg;});}
 
 /* ── SCREENS ── */
@@ -994,6 +1020,52 @@ function confirmAbort(){showModal('<h2>Encerrar quiz?</h2><p>O progresso será p
 function buildResults(){var correct=0;answers.forEach(function(a){if(a.correct)correct++;});var total=quizOrder.length,pct=Math.round(correct/total*100);document.getElementById('res-correct').textContent=correct;document.getElementById('res-wrong').textContent=total-correct;document.getElementById('res-pct').textContent=pct+'%';var showRev=quizOrder.some(function(qi){return getQCfg(qi).result==='review';});var rev=document.getElementById('review-section');if(showRev){rev.style.display='block';var list=document.getElementById('results-list');list.innerHTML='';quizOrder.forEach(function(qi,idx){if(getQCfg(qi).result!=='review')return;var q=activeQuestions[qi],ans=answers[idx],ci=q.alts.findIndex(function(a){return a.correct;});var ok=ans.correct;var item=document.createElement('div');item.className='result-item';item.style.borderColor=ok?'var(--green-border)':'var(--red-border)';var imgH=q.photo?'<img class="result-img" src="'+q.photo+'" alt="">':'';var altsH='';q.alts.forEach(function(alt,ai){var cls='neutral',icon='';if(ai===ci){cls='correct';icon='✓ ';}else if(ai===ans.chosen&&!ok){cls='wrong';icon='✗ ';}altsH+='<div class="r-alt '+cls+'"><span class="rk">'+LETTERS[ai]+'</span>'+icon+esc(alt.text)+'</div>';});var lbl=q.text?q.text.substring(0,52)+(q.text.length>52?'…':''):'Questão '+(idx+1);item.innerHTML='<div class="result-header"><span>'+(idx+1)+'. '+esc(lbl)+'</span><span>'+(ok?'✅':'❌')+'</span></div>'+imgH+'<div class="result-alts">'+altsH+'</div>';list.appendChild(item);});}else{rev.style.display='none';}}
 function restartQuiz(){answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});currentQIdx=0;currentAttempts=0;showScreen('quiz');renderQuizQ();}
 
+
+/* ── BACKUP ── */
+function exportBackup(){
+  var data={version:5,quizzes:quizzes,exportedAt:new Date().toISOString()};
+  var json=JSON.stringify(data,null,2);
+  var blob=new Blob([json],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='quiz-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Backup exportado!');
+}
+function importBackup(input){
+  if(!input.files||!input.files[0])return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      if(!data.quizzes||!Array.isArray(data.quizzes)){toast('Arquivo inválido.');return;}
+      showModal('<h2>Importar backup?</h2>'+
+        '<p>Isso vai <strong>substituir</strong> todos os quizzes atuais por '+data.quizzes.length+' quiz(zes) do backup.</p>'+
+        '<div class="row">'+
+          '<button class="btn btn-danger btn-sm" onclick="doImportBackup('+JSON.stringify(data.quizzes).replace(/'/g,"\'")+')">Substituir</button>'+
+          '<button class="btn btn-sm btn-green" onclick="doMergeBackup('+JSON.stringify(data.quizzes).replace(/'/g,"\'")+')">Mesclar</button>'+
+          '<button class="btn btn-sm" onclick="closeModal()">Cancelar</button>'+
+        '</div>');
+    }catch(e){toast('Erro ao ler arquivo: '+e.message);}
+  };
+  reader.readAsText(input.files[0]);
+  input.value='';
+}
+function doImportBackup(imported){
+  quizzes=imported;isDirty=true;saveLS();closeModal();
+  renderAdminQuizList();renderQuizList();
+  toast('Backup importado! Clique em ☁ Salvar dados para sincronizar.');
+}
+function doMergeBackup(imported){
+  imported.forEach(function(q){
+    if(!quizzes.find(function(x){return x.id===q.id;}))quizzes.push(q);
+  });
+  isDirty=true;saveLS();closeModal();
+  renderAdminQuizList();renderQuizList();
+  toast('Backup mesclado! Clique em ☁ Salvar dados para sincronizar.');
+}
 
 /* ── SHARE QUIZ ── */
 function shareQuiz(id){
