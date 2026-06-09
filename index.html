@@ -1,1 +1,976 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Quiz Fotos">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0071e3">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Quiz de Fotos</title>
+<style>
+:root{
+  --bg:#f5f5f7;--surface:#fff;--surface2:#f0f0f2;--surface3:#e5e5ea;
+  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+  --text:#1d1d1f;--text2:#6e6e73;--text3:#aeaeb2;
+  --blue:#0071e3;--blue-bg:#e8f1fb;--blue-text:#0051a2;--blue-border:#a8c8f5;
+  --green:#1d9e75;--green-bg:#e6f5ee;--green-text:#0a6644;--green-border:#7fd1b0;
+  --red:#d93025;--red-bg:#fce8e6;--red-text:#a31f15;--red-border:#f4a49e;
+  --amber:#b45309;--amber-bg:#fef3c7;--amber-text:#92400e;
+  --purple:#6d28d9;--purple-bg:#ede9fe;--purple-text:#4c1d95;
+  --radius:14px;--radius-sm:10px;--radius-xs:7px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1e;--surface:#2c2c2e;--surface2:#3a3a3c;--surface3:#48484a;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
+  --text:#f5f5f7;--text2:#98989d;--text3:#636366;
+  --blue:#2997ff;--blue-bg:#1a2d42;--blue-text:#6ab4ff;--blue-border:#2d5a8e;
+  --green:#30d158;--green-bg:#0d2a1a;--green-text:#57e07a;--green-border:#1a5c35;
+  --red:#ff453a;--red-bg:#2c1210;--red-text:#ff7b74;--red-border:#7a2c28;
+  --amber:#fbbf24;--amber-bg:#2d1f00;--amber-text:#fcd34d;
+  --purple:#a78bfa;--purple-bg:#2e1a4a;--purple-text:#c4b5fd;
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);font-size:16px;display:flex;flex-direction:column;}
+.topbar{background:var(--surface);border-bottom:0.5px solid var(--border);padding:calc(var(--safe-top)+12px) 16px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:10;}
+.topbar h1{font-size:18px;font-weight:600;flex:1;letter-spacing:-0.2px;}
+.topbar-actions{display:flex;gap:6px;align-items:center;}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px calc(var(--safe-bot)+24px);}
+.screen{display:none;max-width:680px;margin:0 auto;} .screen.active{display:block;}
+.card{background:var(--surface);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:0.5px solid var(--border);}
+.field{margin-bottom:14px;}
+.field label{font-size:11px;font-weight:700;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em;}
+input[type=text],input[type=number],input[type=password],textarea,select{width:100%;background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:11px 13px;font-size:15px;color:var(--text);font-family:inherit;outline:none;-webkit-appearance:none;}
+input[type=text]:focus,input[type=number]:focus,input[type=password]:focus,textarea:focus,select:focus{border-color:var(--blue);background:var(--surface);}
+textarea{resize:vertical;min-height:72px;line-height:1.5;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:15px;font-weight:500;padding:10px 18px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--surface);color:var(--text);font-family:inherit;-webkit-appearance:none;white-space:nowrap;transition:opacity 0.1s,transform 0.1s;}
+.btn:active{opacity:0.65;transform:scale(0.97);} .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn-green{background:var(--green);border-color:var(--green);color:#fff;}
+.btn-purple{background:var(--purple);border-color:var(--purple);color:#fff;}
+.btn-sm{font-size:13px;padding:7px 13px;border-radius:var(--radius-xs);}
+.btn-xs{font-size:12px;padding:5px 9px;border-radius:var(--radius-xs);}
+.btn-danger{background:var(--red-bg);border-color:var(--red-border);color:var(--red-text);}
+.btn-warning{background:var(--amber-bg);border-color:transparent;color:var(--amber-text);}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text2);}
+.btn-block{width:100%;} .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--bg);}
+.login-logo{font-size:72px;margin-bottom:8px;}
+.login-title{font-size:24px;font-weight:700;margin-bottom:4px;letter-spacing:-0.5px;}
+.login-sub{font-size:14px;color:var(--text2);margin-bottom:32px;}
+.login-box{background:var(--surface);border-radius:var(--radius);padding:24px;width:100%;max-width:360px;border:0.5px solid var(--border);}
+.login-role{display:flex;gap:8px;margin-bottom:20px;}
+.role-tab{flex:1;padding:8px;border-radius:var(--radius-xs);border:0.5px solid var(--border2);background:var(--surface2);font-size:13px;font-weight:500;cursor:pointer;text-align:center;color:var(--text2);transition:all 0.15s;}
+.role-tab.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.login-err{font-size:13px;color:var(--red-text);background:var(--red-bg);border:0.5px solid var(--red-border);border-radius:var(--radius-xs);padding:10px 12px;margin-bottom:14px;display:none;}
+/* QUIZ LIST CARD */
+.quiz-card{background:var(--surface);border-radius:var(--radius);border:0.5px solid var(--border);margin-bottom:12px;overflow:hidden;transition:box-shadow 0.15s;}
+.quiz-card:hover{box-shadow:0 2px 12px rgba(0,0,0,0.1);}
+.quiz-card-header{padding:14px 16px;display:flex;align-items:center;gap:12px;}
+.quiz-card-icon{width:44px;height:44px;border-radius:var(--radius-sm);background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.quiz-card-info{flex:1;min-width:0;}
+.quiz-card-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.quiz-card-meta{font-size:12px;color:var(--text2);margin-top:3px;}
+.quiz-card-actions{display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap;}
+.access-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:var(--surface2);color:var(--text2);margin:2px;}
+.access-chip.all{background:var(--green-bg);color:var(--green-text);}
+/* USER BADGE */
+.user-badge{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;cursor:pointer;}
+.user-badge.admin{background:var(--purple-bg);color:var(--purple-text);}
+.user-badge.player{background:var(--blue-bg);color:var(--blue-text);}
+/* PHOTO */
+.photo-preview{width:100%;max-height:200px;object-fit:contain;border-radius:var(--radius-sm);border:0.5px solid var(--border);display:none;background:var(--surface2);margin-bottom:8px;}
+.crop-handle{position:absolute;width:22px;height:22px;background:#fff;border:2px solid #0071e3;border-radius:3px;}
+/* ALTS */
+.alt-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.alt-lbl{font-size:13px;font-weight:700;width:22px;text-align:center;color:var(--text2);flex-shrink:0;}
+.radio-wrap{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);white-space:nowrap;cursor:pointer;flex-shrink:0;}
+.radio-wrap input{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}
+.alts-header{display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;}
+.alts-header span{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;}
+.divider{height:0.5px;background:var(--border);margin:16px 0;}
+.section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin:16px 0 8px;}
+.cfg-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border);}
+.cfg-row:last-child{border-bottom:none;}
+.cfg-row-label{font-size:14px;flex:1;}
+.cfg-row-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+/* Q LIST */
+.q-item{background:var(--surface);border-radius:var(--radius-sm);border:0.5px solid var(--border);margin-bottom:8px;overflow:hidden;}
+.q-item-main{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+.q-num{font-size:11px;font-weight:700;width:24px;height:24px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0;}
+.q-info{flex:1;min-width:0;}
+.q-label{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.q-meta{font-size:12px;color:var(--text3);margin-top:2px;}
+.q-thumb{width:40px;height:40px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);flex-shrink:0;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.q-actions{display:flex;gap:6px;padding:0 10px 10px;flex-wrap:wrap;}
+/* QUIZ */
+.progress-bar{height:4px;background:var(--surface2);border-radius:2px;margin-bottom:12px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--blue);border-radius:2px;transition:width 0.3s;}
+.q-counter{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.attempts-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--amber-bg);color:var(--amber-text);}
+.quiz-img{width:100%;max-height:240px;object-fit:contain;border-radius:var(--radius-sm);border:0.5px solid var(--border);margin-bottom:14px;background:var(--surface2);display:none;}
+.quiz-text{font-size:16px;line-height:1.55;margin-bottom:16px;}
+.alt-btn{width:100%;text-align:left;padding:13px 15px;margin-bottom:8px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:15px;color:var(--text);font-family:inherit;-webkit-appearance:none;display:flex;align-items:center;gap:10px;transition:background 0.12s;}
+.alt-btn:active:not(:disabled){transform:scale(0.99);} .alt-btn:disabled{cursor:default;}
+.alt-key{font-size:12px;font-weight:700;width:26px;height:26px;border-radius:7px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text2);}
+.alt-btn.selected{background:var(--blue-bg);border-color:var(--blue-border);color:var(--blue-text);}
+.alt-btn.selected .alt-key{background:var(--blue);color:#fff;}
+.alt-btn.correct{background:var(--green-bg);border-color:var(--green-border);color:var(--green-text);}
+.alt-btn.correct .alt-key{background:var(--green);color:#fff;}
+.alt-btn.wrong{background:var(--red-bg);border-color:var(--red-border);color:var(--red-text);}
+.alt-btn.wrong .alt-key{background:var(--red);color:#fff;}
+/* RESULTS */
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.score-cell{background:var(--surface);border-radius:var(--radius-sm);border:0.5px solid var(--border);padding:14px 10px;text-align:center;}
+.score-cell .num{font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1;}
+.score-cell .lbl{font-size:11px;color:var(--text2);margin-top:4px;font-weight:500;}
+.score-cell.green .num{color:var(--green);} .score-cell.red .num{color:var(--red);} .score-cell.blue .num{color:var(--blue);}
+.result-item{background:var(--surface);border-radius:var(--radius);border:0.5px solid var(--border);margin-bottom:10px;overflow:hidden;}
+.result-header{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;font-size:14px;font-weight:600;border-bottom:0.5px solid var(--border);}
+.result-img{width:100%;max-height:150px;object-fit:contain;background:var(--surface2);}
+.result-alts{padding:10px 12px;}
+.r-alt{font-size:14px;padding:7px 11px;border-radius:var(--radius-xs);margin-bottom:5px;display:flex;align-items:center;gap:8px;}
+.r-alt .rk{font-size:11px;font-weight:700;width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.r-alt.correct{background:var(--green-bg);color:var(--green-text);} .r-alt.correct .rk{background:var(--green);color:#fff;}
+.r-alt.wrong{background:var(--red-bg);color:var(--red-text);} .r-alt.wrong .rk{background:var(--red);color:#fff;}
+.r-alt.neutral{color:var(--text2);} .r-alt.neutral .rk{background:var(--surface2);color:var(--text2);}
+/* SYNC */
+.sync-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);margin-bottom:12px;font-size:13px;font-weight:500;}
+.sync-bar.synced{background:var(--green-bg);color:var(--green-text);}
+.sync-bar.unsynced{background:var(--amber-bg);color:var(--amber-text);}
+.sync-bar.error{background:var(--red-bg);color:var(--red-text);}
+.sync-bar.loading{background:var(--blue-bg);color:var(--blue-text);}
+/* USER TABLE */
+.user-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);}
+.user-row:last-child{border-bottom:none;}
+.user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.user-name{font-size:14px;font-weight:500;}
+.user-role-tag{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600;}
+.role-admin{background:var(--purple-bg);color:var(--purple-text);}
+.role-player{background:var(--blue-bg);color:var(--blue-text);}
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:var(--text2);}
+.empty .ico{font-size:52px;margin-bottom:14px;}
+.empty p{font-size:15px;line-height:1.7;}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;}
+/* TOAST */
+#toast{position:fixed;bottom:calc(var(--safe-bot)+24px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--text);color:var(--bg);font-size:14px;font-weight:500;padding:10px 20px;border-radius:30px;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:999;white-space:nowrap;max-width:90vw;text-align:center;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;padding:22px 20px calc(var(--safe-bot)+22px);width:100%;max-width:520px;max-height:85vh;overflow-y:auto;}
+@media(min-width:540px){.modal-overlay{align-items:center;padding:16px;}.modal{border-radius:var(--radius);padding:22px;}}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:8px;}
+.modal p{font-size:14px;color:var(--text2);margin-bottom:14px;line-height:1.55;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spinner{width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+#emoji-burst{position:fixed;inset:0;pointer-events:none;z-index:500;display:flex;align-items:center;justify-content:center;font-size:80px;opacity:0;}
+@keyframes burst{0%{transform:scale(0.3);opacity:1;}60%{transform:scale(1.2);opacity:1;}100%{transform:scale(1);opacity:0;}}
+#emoji-burst.animate{animation:burst 0.7s ease-out forwards;}
+.crop-handle{position:absolute;width:22px;height:22px;background:#fff;border:2px solid #0071e3;border-radius:3px;}
+/* USER CHECKBOXES */
+.user-check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
+.user-check-item:last-child{border-bottom:none;}
+.user-check-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="modal-container"></div>
+<div id="emoji-burst"></div>
 
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-logo">🐧</div>
+  <div class="login-title">Quiz de Fotos</div>
+  <div class="login-sub">Faça login para continuar</div>
+  <div class="login-box">
+    <div class="login-role">
+      <div class="role-tab active" id="tab-login" onclick="switchLoginTab('login')">Entrar</div>
+      <div class="role-tab" id="tab-register" onclick="switchLoginTab('register')">Cadastrar</div>
+    </div>
+    <div id="login-err" class="login-err"></div>
+    <div class="field"><label>Usuário</label><input type="text" id="login-user" placeholder="seu usuário" autocomplete="username"></div>
+    <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div id="register-fields" style="display:none;">
+      <div class="field"><label>Confirmar senha</label><input type="password" id="login-pass2" placeholder="••••••••"></div>
+    </div>
+    <button class="btn btn-primary btn-block" id="btn-login-submit" onclick="doLogin()">Entrar</button>
+    <div style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center;line-height:1.5;">Novo? Cadastre-se como jogador.<br>Aguarde liberação de acesso pelo admin.</div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell" style="display:none;flex:1;flex-direction:column;height:100%;">
+  <div class="topbar">
+    <h1 id="screen-title">Quiz de Fotos</h1>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </div>
+  <div class="scroll-area">
+
+    <!-- QUIZ LIST (home for all users) -->
+    <div class="screen active" id="screen-home">
+      <div id="sync-bar" class="sync-bar" style="display:none;"></div>
+      <div class="toolbar" id="home-toolbar"></div>
+      <div id="quiz-list"></div>
+      <div id="empty-home" class="empty" style="display:none;">
+        <div class="ico">📋</div>
+        <p id="empty-msg">Nenhum quiz disponível.</p>
+      </div>
+    </div>
+
+    <!-- QUIZ DETAIL (admin: manage questions) -->
+    <div class="screen" id="screen-quiz-detail">
+      <div class="card" id="quiz-detail-header"></div>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-sm" onclick="goAddQuestion()">+ Nova questão</button>
+        <button class="btn btn-green btn-sm" id="btn-start-detail" onclick="startQuizFromDetail()">▶ Iniciar quiz</button>
+      </div>
+      <div id="q-list"></div>
+      <div id="empty-questions" class="empty" style="display:none;">
+        <div class="ico">📝</div>
+        <p>Nenhuma questão ainda.<br>Toque em <strong>+ Nova questão</strong>.</p>
+      </div>
+    </div>
+
+    <!-- ADD / EDIT QUESTION -->
+    <div class="screen" id="screen-add">
+      <div class="card">
+        <div class="field">
+          <label>Foto da questão</label>
+          <div id="photo-upload-area">
+            <div class="row" style="margin-bottom:8px;flex-wrap:wrap;">
+              <label class="btn btn-sm" style="cursor:pointer;flex:1;min-width:100px;justify-content:center;">🖼 Galeria<input type="file" id="photo-input" accept="image/*" onchange="handleFileInput(this,'image')" style="display:none;"></label>
+              <button class="btn btn-sm btn-primary" onclick="openCamera()" style="flex:1;min-width:100px;">📷 Câmera</button>
+              <label class="btn btn-sm btn-warning" style="cursor:pointer;flex:1;min-width:100px;justify-content:center;">📄 PDF<input type="file" id="pdf-input" accept="application/pdf" onchange="handleFileInput(this,'pdf')" style="display:none;"></label>
+              <label class="btn btn-sm" style="cursor:pointer;flex:1;min-width:100px;justify-content:center;background:var(--purple-bg);border-color:var(--purple);color:var(--purple-text);">📝 Word<input type="file" id="docx-input" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onchange="handleFileInput(this,'docx')" style="display:none;"></label>
+            </div>
+          </div>
+          <img id="photo-preview" class="photo-preview" alt="preview">
+          <div id="photo-remove-wrap" style="display:none;margin-bottom:10px;" class="row">
+            <button class="btn btn-warning btn-xs" onclick="openEditorFromPreview()">✏ Editar</button>
+            <button class="btn btn-danger btn-xs" onclick="removePhoto()">✕ Remover</button>
+          </div>
+        </div>
+        <div class="field"><label>Enunciado (opcional)</label><textarea id="q-text" placeholder="Texto da questão..."></textarea></div>
+        <div class="alts-header"><span>Alternativas</span><button class="btn btn-sm" onclick="addAlt()">+ Alternativa</button></div>
+        <div id="alts-container"></div>
+        <div class="section-title" style="margin-top:18px;">Configurações</div>
+        <div class="card" style="margin-bottom:0;background:var(--surface2);">
+          <div class="cfg-row">
+            <div><div class="cfg-row-label">Tentativas por questão</div><div class="cfg-row-sub">0 = sem extra · N = N tentativas</div></div>
+            <input type="number" id="cfg-attempts" min="0" max="10" value="0" style="width:70px;text-align:center;">
+          </div>
+          <div class="cfg-row">
+            <div><div class="cfg-row-label">Resultado final</div></div>
+            <select id="cfg-result" style="width:auto;min-width:140px;padding:8px 10px;font-size:13px;">
+              <option value="score">Só placar</option>
+              <option value="review">Placar + revisão</option>
+            </select>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn btn-primary" id="btn-save-q" onclick="saveQuestion()">✓ Salvar</button>
+          <button class="btn" onclick="cancelEditQuestion()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div class="screen" id="screen-admin">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <span style="font-size:15px;font-weight:600;">Usuários cadastrados</span>
+          <button class="btn btn-sm btn-purple" id="btn-add-user" onclick="showAddUserModal()" style="display:none;">+ Adicionar</button>
+        </div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Toque em 🎮 para definir quais quizzes o usuário pode acessar.</p>
+        <div id="users-list"></div>
+      </div>
+      <!-- GitHub config: only visible to master -->
+      <div class="card" id="github-config-card" style="display:none;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">Configuração do GitHub para sincronizar entre dispositivos.</p>
+        <div class="field"><label>Usuário GitHub</label><input type="text" id="cfg-user" placeholder="ex: andrelbaptista"></div>
+        <div class="field"><label>Repositório</label><input type="text" id="cfg-repo" placeholder="ex: quiz-fotos"></div>
+        <div class="field"><label>Arquivo de dados</label><input type="text" id="cfg-file" placeholder="ex: quiz-data.json"></div>
+        <div class="field">
+          <label>Token de acesso</label>
+          <input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx">
+          <p style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">GitHub → Settings → Developer settings → Personal access tokens → marque <strong>repo</strong></p>
+        </div>
+        <div class="divider"></div>
+        <div class="row">
+          <button class="btn btn-primary btn-sm" onclick="saveGHConfig()">✓ Salvar GitHub</button>
+          <button class="btn btn-sm" onclick="testConnection()">🔗 Testar</button>
+          <button class="btn btn-sm" id="btn-sync-admin" onclick="syncToGitHub()">☁ Salvar dados</button>
+          <button class="btn btn-sm" onclick="loadFromGitHub()">⬇ Recarregar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYING QUIZ -->
+    <div class="screen" id="screen-quiz">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="q-counter">
+        <span id="q-counter-text"></span>
+        <span id="attempts-badge" class="attempts-badge" style="display:none;"></span>
+        <button class="btn btn-xs btn-danger" onclick="confirmAbort()">✕ Encerrar</button>
+      </div>
+      <div class="card">
+        <img id="quiz-img" class="quiz-img" alt="foto">
+        <p class="quiz-text" id="quiz-text"></p>
+        <div id="quiz-alts"></div>
+        <div style="margin-top:8px;" id="quiz-nav"></div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="screen" id="screen-results">
+      <div class="score-grid">
+        <div class="score-cell green"><div class="num" id="res-correct"></div><div class="lbl">Certas</div></div>
+        <div class="score-cell red"><div class="num" id="res-wrong"></div><div class="lbl">Erradas</div></div>
+        <div class="score-cell blue"><div class="num" id="res-pct"></div><div class="lbl">Nota</div></div>
+      </div>
+      <div id="review-section" style="display:none;"><div class="section-title">Revisão</div><div id="results-list"></div></div>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="restartQuiz()">↺ Refazer</button>
+        <button class="btn btn-sm" onclick="goHome()">⌂ Início</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CAMERA -->
+<div id="camera-modal" style="display:none;position:fixed;inset:0;background:#000;z-index:300;flex-direction:column;align-items:center;justify-content:center;">
+  <video id="camera-video" autoplay playsinline style="width:100%;max-height:72vh;object-fit:contain;"></video>
+  <canvas id="camera-canvas" style="display:none;"></canvas>
+  <div style="display:flex;gap:16px;margin-top:16px;padding:0 20px;width:100%;justify-content:center;align-items:center;">
+    <button class="btn btn-danger btn-sm" onclick="closeCamera()">✕</button>
+    <button onclick="snapPhoto()" style="width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:#fff;font-size:28px;cursor:pointer;">⊙</button>
+    <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.1);" onclick="flipCamera()">🔄</button>
+  </div>
+</div>
+
+<!-- PHOTO EDITOR -->
+<div id="editor-modal" style="display:none;position:fixed;inset:0;background:#111;z-index:400;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1a1a1a;flex-shrink:0;">
+    <button class="btn btn-sm btn-danger" onclick="cancelEditor()">✕</button>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" id="ed-tab-crop" onclick="setEditorTab('crop')">✂ Recortar</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" id="ed-tab-adjust" onclick="setEditorTab('adjust')">🎨 Ajustar</button>
+    </div>
+    <button class="btn btn-sm btn-green" onclick="confirmEditor()">✓ Usar</button>
+  </div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;" id="crop-container">
+    <canvas id="crop-canvas" style="max-width:100%;max-height:100%;display:block;"></canvas>
+    <div id="crop-box" style="position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);touch-action:none;cursor:move;">
+      <div class="crop-handle" id="ch-tl" style="top:-11px;left:-11px;cursor:nw-resize;"></div>
+      <div class="crop-handle" id="ch-tr" style="top:-11px;right:-11px;cursor:ne-resize;"></div>
+      <div class="crop-handle" id="ch-bl" style="bottom:-11px;left:-11px;cursor:sw-resize;"></div>
+      <div class="crop-handle" id="ch-br" style="bottom:-11px;right:-11px;cursor:se-resize;"></div>
+    </div>
+  </div>
+  <div id="ed-panel-crop" style="padding:10px 14px;background:#1a1a1a;flex-shrink:0;">
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;">
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="rotateImage(-90)">↺ 90°</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="rotateImage(90)">↻ 90°</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="rotateImage(180)">↕ 180°</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="resetCropBox()">↺ Reset</button>
+    </div>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="setCropRatio(4,3)">4:3</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="setCropRatio(1,1)">1:1</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="setCropRatio(16,9)">16:9</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="setCropRatio(3,4)">3:4</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="setCropRatio(0,0)">Livre</button>
+    </div>
+  </div>
+  <div id="ed-panel-adjust" style="display:none;padding:12px 16px;background:#1a1a1a;flex-shrink:0;">
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;font-size:12px;">Brilho</span><span id="lbl-brightness" style="color:#fff;font-size:12px;">0</span></div>
+      <input type="range" id="sl-brightness" min="-100" max="100" value="0" style="width:100%;" oninput="applyAdjust()">
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:#aaa;font-size:12px;">Contraste</span><span id="lbl-contrast" style="color:#fff;font-size:12px;">0</span></div>
+      <input type="range" id="sl-contrast" min="-100" max="100" value="0" style="width:100%;" oninput="applyAdjust()">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:4px;">
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="toggleBW()">⬛ P&B</button>
+      <button class="btn btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);" onclick="resetAdjust()">↺ Resetar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+var LETTERS=['A','B','C','D','E','F','G','H'];
+var toastTimer=null;
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function toast(msg,dur){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},dur||2400);}
+function showModal(html){document.getElementById('modal-container').innerHTML='<div class="modal-overlay" id="mov"><div class="modal">'+html+'</div></div>';document.getElementById('mov').addEventListener('click',function(e){if(e.target===this)closeModal();});}
+function closeModal(){document.getElementById('modal-container').innerHTML='';}
+function showEmoji(e){var el=document.getElementById('emoji-burst');el.textContent=e;el.className='animate';setTimeout(function(){el.className='';},800);}
+
+/* ── AUTH ── */
+var currentUser=null;
+async function sha256(str){var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');}
+function getUsers(){try{return JSON.parse(localStorage.getItem('quiz_users')||'[]');}catch(e){return[];}}
+function saveUsers(u){localStorage.setItem('quiz_users',JSON.stringify(u));}
+
+/* roles: masters | admin | player */
+function isMasters(){return currentUser&&currentUser.role==='masters';}
+function isAdminRole(){return currentUser&&(currentUser.role==='admin'||currentUser.role==='masters');}
+function canManagePasswords(){return isMasters();}
+
+async function initUsers(){
+  var u=getUsers();
+  var hasMaster=u.find(function(x){return x.username==='master';});
+  var hasAdmin=u.find(function(x){return x.username==='admin';});
+  if(!hasMaster){
+    var h=await sha256('123');
+    u.push({username:'master',role:'masters',hash:h});
+  } else {
+    hasMaster.role='masters';
+  }
+  if(!hasAdmin){
+    var h2=await sha256('jackadm');
+    u.push({username:'admin',role:'admin',hash:h2});
+  } else if(hasAdmin.role!=='admin'){
+    hasAdmin.role='admin';
+  }
+  saveUsers(u);
+}
+
+function switchLoginTab(tab){
+  document.getElementById('tab-login').classList.toggle('active',tab==='login');
+  document.getElementById('tab-register').classList.toggle('active',tab==='register');
+  document.getElementById('register-fields').style.display=tab==='register'?'block':'none';
+  document.getElementById('btn-login-submit').textContent=tab==='register'?'Cadastrar':'Entrar';
+  document.getElementById('btn-login-submit').onclick=tab==='register'?doRegister:doLogin;
+  document.getElementById('login-err').style.display='none';
+}
+function loginErr(m){var el=document.getElementById('login-err');el.textContent=m;el.style.display='block';}
+
+async function doLogin(){
+  var u=document.getElementById('login-user').value.trim().toLowerCase();
+  var p=document.getElementById('login-pass').value;
+  if(!u||!p){loginErr('Preencha usuário e senha.');return;}
+  var h=await sha256(p);
+  var user=getUsers().find(function(x){return x.username===u&&x.hash===h;});
+  if(!user){loginErr('Usuário ou senha incorretos.');return;}
+  currentUser={username:user.username,role:user.role||'player'};
+  localStorage.setItem('quiz_session',JSON.stringify(currentUser));
+  enterApp();
+}
+
+async function doRegister(){
+  var u=document.getElementById('login-user').value.trim().toLowerCase();
+  var p=document.getElementById('login-pass').value;
+  var p2=document.getElementById('login-pass2').value;
+  if(!u||!p){loginErr('Preencha todos os campos.');return;}
+  if(p!==p2){loginErr('Senhas não coincidem.');return;}
+  if(p.length<4){loginErr('Senha mínima: 4 caracteres.');return;}
+  if(!/^[a-z0-9_]{3,20}$/.test(u)){loginErr('Usuário: 3-20 chars, letras minúsculas e números.');return;}
+  if(u==='master'||u==='admin'){loginErr('Nome de usuário reservado.');return;}
+  var users=getUsers();
+  if(users.find(function(x){return x.username===u;})){loginErr('Usuário já existe.');return;}
+  var h=await sha256(p);
+  users.push({username:u,role:'player',hash:h});
+  saveUsers(users);
+  currentUser={username:u,role:'player'};
+  localStorage.setItem('quiz_session',JSON.stringify(currentUser));
+  enterApp();
+}
+
+function enterApp(){
+  document.getElementById('login-screen').style.display='none';
+  var shell=document.getElementById('app-shell');
+  shell.style.display='flex';
+  buildHomeToolbar();
+  renderQuizList();
+  if(isAdminRole()&&hasCfg())loadFromGitHub();
+  updateTopbar();
+  checkUrlQuiz();
+}
+
+function updateTopbar(){
+  if(!currentUser)return;
+  var act=document.getElementById('topbar-actions');
+  var roleLabel=currentUser.role==='masters'?'Masters':currentUser.role==='admin'?'Admin':'Jogador';
+  var badgeClass=isAdminRole()?'admin':'player';
+  act.innerHTML='<div class="user-badge '+badgeClass+'" onclick="confirmLogout()">'+roleLabel+': '+esc(currentUser.username)+' ↩</div>';
+}
+function confirmLogout(){showModal('<h2>Sair?</h2><p>Você será desconectado.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="doLogout()">Sair</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');}
+function doLogout(){currentUser=null;localStorage.removeItem('quiz_session');closeModal();document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-user').value='';document.getElementById('login-pass').value='';switchLoginTab('login');}
+
+/* ── DATA MODEL ──
+  quizzes = [{id, name, createdBy, accessAll, accessUsers:[], questions:[{photo,text,alts,cfg}]}]
+── */
+var quizzes=[], activeQuizId=null, isDirty=false, ghSha=null;
+
+function getQuiz(id){return quizzes.find(function(q){return q.id===id;});}
+function saveLS(){try{localStorage.setItem('quiz_v5',JSON.stringify(quizzes));}catch(e){}}
+function loadLS(){try{var d=localStorage.getItem('quiz_v5');if(d){var p=JSON.parse(d);if(Array.isArray(p)){quizzes=p;return;}}
+  // migrate from old format
+  var old=localStorage.getItem('quiz_v4');
+  if(old){var qs=JSON.parse(old);if(Array.isArray(qs)&&qs.length){quizzes=[{id:Date.now()+'',name:'Quiz importado',createdBy:'admin',accessAll:true,accessUsers:[],questions:qs}];saveLS();}}}catch(e){quizzes=[];}}
+
+/* ── GITHUB ── */
+function getCfg(){try{return JSON.parse(localStorage.getItem('quiz_cfg')||'{}');}catch(e){return{};}}
+function hasCfg(){var c=getCfg();return!!(c.user&&c.repo&&c.file&&c.token);}
+function ghH(){var c=getCfg();return{'Authorization':'token '+c.token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};}
+function ghUrl(){var c=getCfg();return'https://api.github.com/repos/'+c.user+'/'+c.repo+'/contents/'+c.file;}
+function saveGHConfig(){var c={user:document.getElementById('cfg-user').value.trim(),repo:document.getElementById('cfg-repo').value.trim(),file:document.getElementById('cfg-file').value.trim()||'quiz-data.json',token:document.getElementById('cfg-token').value.trim()};if(!c.user||!c.repo||!c.token){toast('Preencha os campos.');return;}localStorage.setItem('quiz_cfg',JSON.stringify(c));toast('GitHub configurado!');loadFromGitHub();}
+function loadCfgForm(){var c=getCfg();document.getElementById('cfg-user').value=c.user||'';document.getElementById('cfg-repo').value=c.repo||'';document.getElementById('cfg-file').value=c.file||'quiz-data.json';document.getElementById('cfg-token').value=c.token||'';}
+function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
+function loadFromGitHub(){if(!hasCfg())return;setSyncBar('loading','⏳ Carregando...');fetch(ghUrl(),{headers:ghH(),cache:'no-store'}).then(function(r){if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(!data)return;ghSha=data.sha;var json=JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,'')))));quizzes=json.quizzes||[];saveLS();isDirty=false;renderQuizList();setSyncBar('synced','✓ Sincronizado');toast('Dados carregados!');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
+function syncToGitHub(){if(!hasCfg()){toast('Configure o GitHub no painel Admin.');return;}setSyncBar('loading','⏳ Salvando...');var content=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));var body={message:'Atualizar quizzes',content:content};if(ghSha)body.sha=ghSha;fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)}).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();}).then(function(data){ghSha=data.content.sha;isDirty=false;setSyncBar('synced','✓ Salvo');toast('Salvo no GitHub! ✓');renderQuizList();}).catch(function(e){setSyncBar('error','✗ '+e.message);toast('Erro: '+e.message);});}
+function setSyncBar(type,msg){['sync-bar'].forEach(function(id){var el=document.getElementById(id);if(!el)return;el.style.display='flex';el.className='sync-bar '+type;el.innerHTML=(type==='loading'?'<span class="spinner"></span> ':'')+msg;});}
+
+/* ── SCREENS ── */
+function showScreen(name){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById('screen-'+name).classList.add('active');var titles={home:'Quiz de Fotos',add:editingQIdx!==null?'Editar questão':'Nova questão',quiz:'Quiz',results:'Resultado',admin:'Administração','quiz-detail':'Questões'};document.getElementById('screen-title').textContent=titles[name]||'';if(name==='admin'){renderUsersList();if(isMasters()){document.getElementById('github-config-card').style.display='block';loadCfgForm();}else{document.getElementById('github-config-card').style.display='none';}}document.querySelector('.scroll-area').scrollTop=0;updateTopbar();}
+function goHome(){activeQuizId=null;showScreen('home');renderQuizList();}
+function buildHomeToolbar(){
+  var tb=document.getElementById('home-toolbar');tb.innerHTML='';
+  if(currentUser&&isAdminRole()){
+    tb.innerHTML='<button class="btn btn-primary btn-sm" onclick="showCreateQuizModal()">+ Novo quiz</button>'+
+      '<button class="btn btn-sm" id="btn-sync" onclick="syncToGitHub()" style="display:none;">☁ Salvar</button>'+
+      '<button class="btn btn-purple btn-sm" onclick="showScreen(\'admin\')">⚙ Admin</button>';
+  }
+}
+
+/* ── QUIZ LIST ── */
+function canAccessQuiz(quiz){
+  if(!currentUser)return false;
+  if(isAdminRole())return true;
+  if(quiz.accessAll)return true;
+  return !!(quiz.accessUsers&&quiz.accessUsers.indexOf(currentUser.username)!==-1);
+}
+function renderQuizList(){
+  var el=document.getElementById('quiz-list'),empty=document.getElementById('empty-home');
+  el.innerHTML='';
+  var isAdmin=currentUser&&isAdminRole();
+  var visible=quizzes.filter(function(q){return canAccessQuiz(q);});
+  var syncBtn=document.getElementById('btn-sync');
+  if(syncBtn)syncBtn.style.display=isAdmin&&hasCfg()&&quizzes.length?'inline-flex':'none';
+  if(!visible.length){empty.style.display='block';document.getElementById('empty-msg').textContent=isAdmin?'Nenhum quiz. Toque em + Novo quiz.':'Nenhum quiz disponível para você.';return;}
+  empty.style.display='none';
+  visible.forEach(function(quiz){
+    var card=document.createElement('div');card.className='quiz-card';
+    var qCount=quiz.questions?quiz.questions.length:0;
+    var accessLabel=quiz.accessAll?'<span class="access-chip all">Todos</span>':
+      (quiz.accessUsers||[]).map(function(u){return'<span class="access-chip">'+esc(u)+'</span>';}).join('')||'<span class="access-chip">Nenhum</span>';
+    var adminActions=isAdmin?
+      '<button class="btn btn-xs btn-warning" onclick="editQuizMeta(\''+quiz.id+'\')">✏ Editar</button>'+
+      '<button class="btn btn-xs" onclick="openQuizDetail(\''+quiz.id+'\')">📝 Questões</button>'+
+      '<button class="btn btn-xs btn-primary" onclick="shareQuiz(\''+quiz.id+'\')">🔗 Compartilhar</button>'+
+      '<button class="btn btn-xs btn-danger" onclick="confirmDeleteQuiz(\''+quiz.id+'\')">✕</button>':'';
+    card.innerHTML=
+      '<div class="quiz-card-header">'+
+        '<div class="quiz-card-icon">📋</div>'+
+        '<div class="quiz-card-info">'+
+          '<div class="quiz-card-name">'+esc(quiz.name)+'</div>'+
+          '<div class="quiz-card-meta">'+qCount+' questão'+(qCount!==1?'s':'')+' · '+accessLabel+'</div>'+
+        '</div>'+
+        '<button class="btn btn-green btn-sm" onclick="startQuizById(\''+quiz.id+'\')">▶ Jogar</button>'+
+      '</div>'+
+      (isAdmin?'<div class="quiz-card-actions">'+adminActions+'</div>':'');
+    el.appendChild(card);
+  });
+  if(isDirty&&hasCfg()&&isAdmin)setSyncBar('unsynced','● Alterações não salvas');
+}
+
+/* ── CREATE / EDIT QUIZ META ── */
+function showCreateQuizModal(){
+  var users=getUsers().filter(function(u){return u.role==='player';});
+  var userChecks=users.map(function(u){
+    return'<div class="user-check-item"><input type="checkbox" class="quiz-user-cb" value="'+esc(u.username)+'"><label style="font-size:14px;cursor:pointer;">'+esc(u.username)+'</label></div>';
+  }).join('');
+  showModal(
+    '<h2>Novo quiz</h2>'+
+    '<div class="field" style="margin-bottom:12px;"><label>Nome do quiz</label><input type="text" id="new-quiz-name" placeholder="ex: Turma A — História"></div>'+
+    '<div class="section-title" style="margin-bottom:8px;">Quem pode acessar</div>'+
+    '<div class="user-check-item" style="margin-bottom:8px;"><input type="checkbox" id="quiz-access-all" onchange="toggleAccessAll(this)" checked><label style="font-size:14px;font-weight:600;cursor:pointer;">Todos os usuários</label></div>'+
+    '<div id="quiz-user-list" style="display:none;">'+userChecks+'</div>'+
+    '<div class="row" style="margin-top:16px;"><button class="btn btn-primary btn-sm" onclick="createQuiz()">✓ Criar quiz</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>'
+  );
+}
+function toggleAccessAll(cb){document.getElementById('quiz-user-list').style.display=cb.checked?'none':'block';}
+function createQuiz(){
+  var name=document.getElementById('new-quiz-name').value.trim();
+  if(!name){toast('Digite um nome para o quiz.');return;}
+  var accessAll=document.getElementById('quiz-access-all').checked;
+  var accessUsers=[];
+  if(!accessAll){
+    document.querySelectorAll('.quiz-user-cb:checked').forEach(function(cb){accessUsers.push(cb.value);});
+  }
+  var quiz={id:Date.now()+'',name:name,createdBy:currentUser.username,accessAll:accessAll,accessUsers:accessUsers,questions:[]};
+  quizzes.push(quiz);isDirty=true;saveLS();closeModal();renderQuizList();
+  toast('Quiz "'+name+'" criado!');
+  openQuizDetail(quiz.id);
+}
+function editQuizMeta(id){
+  var quiz=getQuiz(id);if(!quiz)return;
+  var users=getUsers().filter(function(u){return u.role==='player';});
+  var userChecks=users.map(function(u){
+    var checked=!quiz.accessAll&&quiz.accessUsers&&quiz.accessUsers.indexOf(u.username)!==-1;
+    return'<div class="user-check-item"><input type="checkbox" class="quiz-user-cb" value="'+esc(u.username)+'"'+(checked?' checked':'')+'>'+
+      '<label style="font-size:14px;cursor:pointer;">'+esc(u.username)+'</label></div>';
+  }).join('');
+  showModal(
+    '<h2>Editar quiz</h2>'+
+    '<div class="field" style="margin-bottom:12px;"><label>Nome</label><input type="text" id="edit-quiz-name" value="'+esc(quiz.name)+'"></div>'+
+    '<div class="section-title" style="margin-bottom:8px;">Quem pode acessar</div>'+
+    '<div class="user-check-item" style="margin-bottom:8px;"><input type="checkbox" id="quiz-access-all" onchange="toggleAccessAll(this)"'+(quiz.accessAll?' checked':'')+'>'+
+      '<label style="font-size:14px;font-weight:600;cursor:pointer;">Todos os usuários</label></div>'+
+    '<div id="quiz-user-list" style="'+(quiz.accessAll?'display:none':'')+'">'+userChecks+'</div>'+
+    '<div class="row" style="margin-top:16px;"><button class="btn btn-primary btn-sm" onclick="saveQuizMeta(\''+id+'\')">✓ Salvar</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>'
+  );
+}
+function saveQuizMeta(id){
+  var quiz=getQuiz(id);if(!quiz)return;
+  var name=document.getElementById('edit-quiz-name').value.trim();
+  if(!name){toast('Digite um nome.');return;}
+  quiz.name=name;
+  quiz.accessAll=document.getElementById('quiz-access-all').checked;
+  quiz.accessUsers=[];
+  if(!quiz.accessAll){document.querySelectorAll('.quiz-user-cb:checked').forEach(function(cb){quiz.accessUsers.push(cb.value);});}
+  isDirty=true;saveLS();closeModal();renderQuizList();toast('Quiz atualizado!');
+}
+function confirmDeleteQuiz(id){
+  var quiz=getQuiz(id);if(!quiz)return;
+  showModal('<h2>Excluir quiz?</h2><p>O quiz <strong>'+esc(quiz.name)+'</strong> e todas as suas questões serão removidos.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="deleteQuiz(\''+id+'\')">Excluir</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');
+}
+function deleteQuiz(id){quizzes=quizzes.filter(function(q){return q.id!==id;});isDirty=true;saveLS();closeModal();renderQuizList();toast('Quiz excluído.');}
+
+/* ── QUIZ DETAIL (manage questions) ── */
+function openQuizDetail(id){
+  activeQuizId=id;
+  var quiz=getQuiz(id);if(!quiz)return;
+  showScreen('quiz-detail');
+  document.getElementById('screen-title').textContent=quiz.name;
+  document.getElementById('quiz-detail-header').innerHTML=
+    '<div style="font-size:13px;color:var(--text2);line-height:1.6;">'+
+    '<strong>'+esc(quiz.name)+'</strong> · '+(quiz.accessAll?'Acesso: todos':'Acesso: '+((quiz.accessUsers||[]).join(', ')||'ninguém'))+'</div>';
+  renderQuestionList();
+}
+function renderQuestionList(){
+  var quiz=getQuiz(activeQuizId);
+  var el=document.getElementById('q-list'),empty=document.getElementById('empty-questions');
+  el.innerHTML='';
+  if(!quiz||!quiz.questions||!quiz.questions.length){empty.style.display='block';return;}
+  empty.style.display='none';
+  quiz.questions.forEach(function(q,i){
+    var ci=q.alts.findIndex(function(a){return a.correct;});
+    var lbl=q.text?q.text.substring(0,54)+(q.text.length>54?'…':''):'Questão '+(i+1)+' (foto)';
+    var th=q.photo?'<img class="q-thumb" src="'+q.photo+'" alt="">':'<div class="q-thumb" style="display:flex;align-items:center;justify-content:center;">📷</div>';
+    var up=i>0?'<button class="btn btn-xs btn-ghost" onclick="moveQ('+i+',-1)">↑</button>':'';
+    var dn=i<quiz.questions.length-1?'<button class="btn btn-xs btn-ghost" onclick="moveQ('+i+',1)">↓</button>':'';
+    var d=document.createElement('div');d.className='q-item';
+    d.innerHTML='<div class="q-item-main"><span class="q-num">'+(i+1)+'</span>'+th+'<div class="q-info"><div class="q-label">'+esc(lbl)+'</div><div class="q-meta">'+q.alts.length+' alt. · correta: '+LETTERS[ci]+'</div></div></div>'+
+      '<div class="q-actions"><button class="btn btn-xs btn-warning" onclick="editQuestion('+i+')">✏ Editar</button><button class="btn btn-xs btn-danger" onclick="confirmDeleteQ('+i+')">✕ Excluir</button>'+up+dn+'</div>';
+    el.appendChild(d);
+  });
+}
+function moveQ(i,dir){var quiz=getQuiz(activeQuizId);if(!quiz)return;var j=i+dir;if(j<0||j>=quiz.questions.length)return;var t=quiz.questions[i];quiz.questions[i]=quiz.questions[j];quiz.questions[j]=t;isDirty=true;saveLS();renderQuestionList();}
+function confirmDeleteQ(i){showModal('<h2>Excluir questão '+(i+1)+'?</h2><div class="row"><button class="btn btn-danger btn-sm" onclick="deleteQ('+i+')">Excluir</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');}
+function deleteQ(i){var quiz=getQuiz(activeQuizId);if(!quiz)return;quiz.questions.splice(i,1);isDirty=true;saveLS();closeModal();renderQuestionList();toast('Questão excluída.');}
+
+/* ── ADD / EDIT QUESTION ── */
+var editingQIdx=null,currentAlts=[],currentPhotoData=null;
+function goAddQuestion(){if(!activeQuizId)return;editingQIdx=null;resetAddForm();showScreen('add');}
+function editQuestion(i){editingQIdx=i;var q=getQuiz(activeQuizId).questions[i];currentPhotoData=q.photo||null;currentAlts=q.alts.map(function(a){return{text:a.text,correct:a.correct};});document.getElementById('q-text').value=q.text||'';document.getElementById('cfg-attempts').value=(q.cfg&&q.cfg.attempts!==undefined)?q.cfg.attempts:0;document.getElementById('cfg-result').value=(q.cfg&&q.cfg.result)?q.cfg.result:'score';var prev=document.getElementById('photo-preview'),rmw=document.getElementById('photo-remove-wrap');if(currentPhotoData){prev.src=currentPhotoData;prev.style.display='block';rmw.style.display='flex';}else{prev.style.display='none';rmw.style.display='none';}renderAlts();showScreen('add');}
+function cancelEditQuestion(){editingQIdx=null;currentPhotoData=null;currentAlts=[];resetAddForm();openQuizDetail(activeQuizId);}
+function resetAddForm(){document.getElementById('q-text').value='';document.getElementById('photo-input').value='';document.getElementById('photo-preview').style.display='none';document.getElementById('photo-remove-wrap').style.display='none';document.getElementById('cfg-attempts').value='0';document.getElementById('cfg-result').value='score';currentPhotoData=null;currentAlts=[];addAlt();addAlt();}
+var OUT_W=960,OUT_H=720,OUT_Q=0.88;
+function resizeAndFinalize(dataUrl,cb){var img=new Image();img.onload=function(){var sc=Math.min(OUT_W/img.naturalWidth,OUT_H/img.naturalHeight,1);var dw=Math.round(img.naturalWidth*sc),dh=Math.round(img.naturalHeight*sc);var c=document.createElement('canvas');c.width=OUT_W;c.height=OUT_H;var ctx=c.getContext('2d');ctx.fillStyle='#000';ctx.fillRect(0,0,OUT_W,OUT_H);ctx.drawImage(img,(OUT_W-dw)/2,(OUT_H-dh)/2,dw,dh);cb(c.toDataURL('image/jpeg',OUT_Q));};img.src=dataUrl;}
+function setPhotoData(d){currentPhotoData=d;var img=document.getElementById('photo-preview');img.src=d;img.style.display='block';document.getElementById('photo-remove-wrap').style.display='flex';}
+function removePhoto(){currentPhotoData=null;document.getElementById('photo-preview').style.display='none';document.getElementById('photo-remove-wrap').style.display='none';document.getElementById('photo-input').value='';}
+function renderAlts(){var c=document.getElementById('alts-container');c.innerHTML='';currentAlts.forEach(function(alt,i){var row=document.createElement('div');row.className='alt-row';row.innerHTML='<span class="alt-lbl">'+LETTERS[i]+'</span><input type="text" value="'+esc(alt.text)+'" placeholder="Alternativa '+LETTERS[i]+'" oninput="currentAlts['+i+'].text=this.value" style="flex:1;"><label class="radio-wrap"><input type="radio" name="correct-alt" value="'+i+'" '+(alt.correct?'checked':'')+' onchange="setCorrect('+i+')"> Correta</label><button class="btn btn-danger btn-xs" onclick="removeAlt('+i+')" '+(currentAlts.length<=2?'disabled':'')+'>✕</button>';c.appendChild(row);});}
+function addAlt(){if(currentAlts.length>=8)return;currentAlts.push({text:'',correct:currentAlts.length===0});renderAlts();}
+function removeAlt(i){currentAlts.splice(i,1);if(!currentAlts.some(function(a){return a.correct;}))currentAlts[0].correct=true;renderAlts();}
+function setCorrect(i){currentAlts.forEach(function(a,idx){a.correct=(idx===i);});}
+function saveQuestion(){
+  var texts=currentAlts.map(function(a){return a.text.trim();});
+  if(texts.some(function(t){return !t;})){toast('Preencha todas as alternativas.');return;}
+  if(!currentAlts.some(function(a){return a.correct;})){toast('Marque a alternativa correta.');return;}
+  var quiz=getQuiz(activeQuizId);if(!quiz)return;
+  var q={photo:currentPhotoData,text:document.getElementById('q-text').value.trim(),alts:currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}),cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value}};
+  if(editingQIdx!==null){quiz.questions[editingQIdx]=q;toast('Questão atualizada!');}else{quiz.questions.push(q);toast('Questão adicionada!');}
+  editingQIdx=null;currentPhotoData=null;currentAlts=[];isDirty=true;saveLS();resetAddForm();openQuizDetail(activeQuizId);
+}
+
+/* ── FILE INPUT ── */
+function handleFileInput(input,type){if(!input.files||!input.files[0])return;var file=input.files[0];input.value='';if(type==='image'){var r=new FileReader();r.onload=function(e){openEditor(e.target.result);};r.readAsDataURL(file);}else if(type==='pdf'){loadPDF(file);}else if(type==='docx'){loadDocx(file);}}
+function loadPDF(file){toast('Carregando PDF...',4000);var reader=new FileReader();reader.onload=function(e){var typedArray=new Uint8Array(e.target.result);if(typeof pdfjsLib==='undefined'){toast('pdf.js não carregado.');return;}pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';pdfjsLib.getDocument({data:typedArray}).promise.then(function(pdf){if(pdf.numPages>1){var opts='';for(var i=1;i<=Math.min(pdf.numPages,20);i++)opts+='<option value="'+i+'">Página '+i+'</option>';window.pdfDoc=pdf;window.pdfPageSel=1;showModal('<h2>Selecionar página</h2><p>PDF com '+pdf.numPages+' página(s).</p><div class="field"><select id="pdf-page-sel" onchange="window.pdfPageSel=parseInt(this.value)">'+opts+'</select></div><div class="row"><button class="btn btn-primary btn-sm" onclick="renderPDFPage(window.pdfDoc,window.pdfPageSel||1)">Usar página</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');}else{renderPDFPage(pdf,1);}}).catch(function(e){toast('Erro PDF: '+e.message);});};reader.readAsArrayBuffer(file);}
+function renderPDFPage(pdf,pageNum){closeModal();pdf.getPage(pageNum).then(function(page){var vp=page.getViewport({scale:2.0});var c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise.then(function(){openEditor(c.toDataURL('image/jpeg',0.95));toast('Página '+pageNum+' carregada!');});});}
+function loadDocx(file){toast('Carregando Word...',4000);if(typeof mammoth==='undefined'){toast('mammoth.js não carregado.');return;}var reader=new FileReader();reader.onload=function(e){mammoth.convertToHtml({arrayBuffer:e.target.result}).then(function(result){var div=document.createElement('div');div.style.cssText='position:fixed;left:-9999px;top:0;width:800px;padding:40px;background:#fff;font-family:serif;font-size:14px;line-height:1.6;color:#000;';div.innerHTML=result.value;document.body.appendChild(div);var h=Math.max(div.scrollHeight+80,400);div.style.height=h+'px';setTimeout(function(){var svgData='<svg xmlns="http://www.w3.org/2000/svg" width="800" height="'+h+'"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="padding:40px;font-family:serif;font-size:14px;line-height:1.6;color:#000;background:#fff;">'+result.value+'</div></foreignObject></svg>';var img=new Image();img.onload=function(){var c=document.createElement('canvas');c.width=800;c.height=h;c.getContext('2d').drawImage(img,0,0);document.body.removeChild(div);openEditor(c.toDataURL('image/jpeg',0.92));toast('Documento carregado!');};img.onerror=function(){document.body.removeChild(div);toast('Erro ao renderizar Word.');};img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgData);},200);}).catch(function(e){toast('Erro Word: '+e.message);});};reader.readAsArrayBuffer(file);}
+
+/* ── CAMERA ── */
+var cameraStream=null,cameraFacing='environment';
+function openCamera(){document.getElementById('camera-modal').style.display='flex';startCameraStream();}
+function startCameraStream(){if(cameraStream)cameraStream.getTracks().forEach(function(t){t.stop();});navigator.mediaDevices.getUserMedia({video:{facingMode:cameraFacing,width:{ideal:1280},height:{ideal:960}},audio:false}).then(function(stream){cameraStream=stream;document.getElementById('camera-video').srcObject=stream;}).catch(function(){closeCamera();var inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.capture='environment';inp.onchange=function(){if(inp.files&&inp.files[0]){var r=new FileReader();r.onload=function(ev){openEditor(ev.target.result);};r.readAsDataURL(inp.files[0]);}};inp.click();toast('Abrindo câmera nativa...');});}
+function flipCamera(){cameraFacing=(cameraFacing==='environment')?'user':'environment';startCameraStream();}
+function snapPhoto(){var video=document.getElementById('camera-video');var c=document.getElementById('camera-canvas');c.width=video.videoWidth||1280;c.height=video.videoHeight||960;c.getContext('2d').drawImage(video,0,0);closeCamera();openEditor(c.toDataURL('image/jpeg',0.95));}
+function closeCamera(){if(cameraStream)cameraStream.getTracks().forEach(function(t){t.stop();});cameraStream=null;document.getElementById('camera-modal').style.display='none';}
+
+/* ── PHOTO EDITOR ── */
+var cropImg=null,cropImgOriginal=null,cropRatio=0,cropBox={x:0,y:0,w:0,h:0},canvasRect=null,dragState=null,edRotation=0,edBW=false,edBrightness=0,edContrast=0;
+function openEditor(dataUrl){cropImg=new Image();cropImg.onload=function(){cropImgOriginal=dataUrl;edRotation=0;edBW=false;edBrightness=0;edContrast=0;resetSliders();document.getElementById('editor-modal').style.display='flex';setEditorTab('crop');setTimeout(initCropCanvas,80);};cropImg.src=dataUrl;}
+function openEditorFromPreview(){if(currentPhotoData)openEditor(currentPhotoData);}
+function setEditorTab(tab){document.getElementById('ed-panel-crop').style.display=tab==='crop'?'block':'none';document.getElementById('ed-panel-adjust').style.display=tab==='adjust'?'block':'none';document.getElementById('ed-tab-crop').style.background=tab==='crop'?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.1)';document.getElementById('ed-tab-adjust').style.background=tab==='adjust'?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.1)';document.getElementById('crop-box').style.display=tab==='crop'?'block':'none';}
+function rotateImage(deg){var tmp=new Image();tmp.onload=function(){var c=document.createElement('canvas');var rad=deg*Math.PI/180;var cos=Math.abs(Math.cos(rad)),sin=Math.abs(Math.sin(rad));c.width=Math.round(tmp.naturalWidth*cos+tmp.naturalHeight*sin);c.height=Math.round(tmp.naturalWidth*sin+tmp.naturalHeight*cos);var ctx=c.getContext('2d');ctx.translate(c.width/2,c.height/2);ctx.rotate(rad);ctx.drawImage(tmp,-tmp.naturalWidth/2,-tmp.naturalHeight/2);var newUrl=c.toDataURL('image/jpeg',0.95);cropImgOriginal=newUrl;cropImg=new Image();cropImg.onload=function(){initCropCanvas();};cropImg.src=newUrl;};tmp.src=cropImgOriginal||cropImg.src;}
+function resetSliders(){document.getElementById('sl-brightness').value=0;document.getElementById('sl-contrast').value=0;document.getElementById('lbl-brightness').textContent='0';document.getElementById('lbl-contrast').textContent='0';edBW=false;edBrightness=0;edContrast=0;}
+function applyAdjust(){edBrightness=parseInt(document.getElementById('sl-brightness').value);edContrast=parseInt(document.getElementById('sl-contrast').value);document.getElementById('lbl-brightness').textContent=edBrightness;document.getElementById('lbl-contrast').textContent=edContrast;applyFiltersToCanvas();}
+function toggleBW(){edBW=!edBW;applyFiltersToCanvas();toast(edBW?'P&B ativado':'P&B removido');}
+function resetAdjust(){resetSliders();applyFiltersToCanvas();}
+function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+function applyFiltersToCanvas(){var canvas=document.getElementById('crop-canvas');var ctx=canvas.getContext('2d');ctx.drawImage(cropImg,0,0,canvas.width,canvas.height);if(!edBW&&edBrightness===0&&edContrast===0)return;var id=ctx.getImageData(0,0,canvas.width,canvas.height);var d=id.data;var b=edBrightness*2.55;var f=(259*(edContrast+255))/(255*(259-edContrast));for(var i=0;i<d.length;i+=4){var r=clamp(d[i]+b,0,255),g=clamp(d[i+1]+b,0,255),bl=clamp(d[i+2]+b,0,255);r=clamp(f*(r-128)+128,0,255);g=clamp(f*(g-128)+128,0,255);bl=clamp(f*(bl-128)+128,0,255);if(edBW){var gr=0.299*r+0.587*g+0.114*bl;r=g=bl=gr;}d[i]=r;d[i+1]=g;d[i+2]=bl;}ctx.putImageData(id,0,0);}
+function initCropCanvas(){var cont=document.getElementById('crop-container');var canvas=document.getElementById('crop-canvas');var sc=Math.min(cont.clientWidth/cropImg.naturalWidth,cont.clientHeight/cropImg.naturalHeight,1);canvas.width=Math.round(cropImg.naturalWidth*sc);canvas.height=Math.round(cropImg.naturalHeight*sc);canvas.getContext('2d').drawImage(cropImg,0,0,canvas.width,canvas.height);if(edBW||edBrightness!==0||edContrast!==0)applyFiltersToCanvas();canvasRect=canvas.getBoundingClientRect();resetCropBox();bindCropEvents();}
+function resetCropBox(){var canvas=document.getElementById('crop-canvas');canvasRect=canvas.getBoundingClientRect();var m=Math.min(canvas.width,canvas.height)*0.05;cropBox={x:m,y:m,w:canvas.width-m*2,h:canvas.height-m*2};if(cropRatio>0)applyCropRatio();renderCropBox();}
+function setCropRatio(rw,rh){cropRatio=(rw&&rh)?(rw/rh):0;if(cropRatio>0)applyCropRatio();renderCropBox();}
+function applyCropRatio(){var canvas=document.getElementById('crop-canvas');var mw=canvas.width*0.92,mh=canvas.height*0.92;var w=mw,h=w/cropRatio;if(h>mh){h=mh;w=h*cropRatio;}cropBox.w=w;cropBox.h=h;cropBox.x=(canvas.width-w)/2;cropBox.y=(canvas.height-h)/2;}
+function renderCropBox(){var canvas=document.getElementById('crop-canvas');canvasRect=canvas.getBoundingClientRect();var box=document.getElementById('crop-box');var cr=document.getElementById('crop-container').getBoundingClientRect();var ox=canvasRect.left-cr.left,oy=canvasRect.top-cr.top;var sx=canvasRect.width/canvas.width,sy=canvasRect.height/canvas.height;box.style.left=(ox+cropBox.x*sx)+'px';box.style.top=(oy+cropBox.y*sy)+'px';box.style.width=(cropBox.w*sx)+'px';box.style.height=(cropBox.h*sy)+'px';}
+function bindCropEvents(){var box=document.getElementById('crop-box');var hmap={tl:'ch-tl',tr:'ch-tr',bl:'ch-bl',br:'ch-br'};function start(t,cx,cy){dragState={type:t,sx:cx,sy:cy,ox:cropBox.x,oy:cropBox.y,ow:cropBox.w,oh:cropBox.h};}box.addEventListener('touchstart',function(e){start('move',e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();},{passive:false});box.addEventListener('mousedown',function(e){start('move',e.clientX,e.clientY);e.preventDefault();});Object.keys(hmap).forEach(function(k){var el=document.getElementById(hmap[k]);el.addEventListener('touchstart',function(e){start(k,e.touches[0].clientX,e.touches[0].clientY);e.stopPropagation();e.preventDefault();},{passive:false});el.addEventListener('mousedown',function(e){start(k,e.clientX,e.clientY);e.stopPropagation();e.preventDefault();});});function onMove(cx,cy){if(!dragState)return;var canvas=document.getElementById('crop-canvas');var cW=canvas.width,cH=canvas.height;var sx=cW/canvasRect.width,sy=cH/canvasRect.height;var dx=(cx-dragState.sx)*sx,dy=(cy-dragState.sy)*sy;var MIN=40,t=dragState.type;if(t==='move'){cropBox.x=clamp(dragState.ox+dx,0,cW-cropBox.w);cropBox.y=clamp(dragState.oy+dy,0,cH-cropBox.h);}else if(t==='br'){var nw=clamp(dragState.ow+dx,MIN,cW-cropBox.x);cropBox.w=nw;cropBox.h=cropRatio>0?nw/cropRatio:clamp(dragState.oh+dy,MIN,cH-cropBox.y);}else if(t==='bl'){var nw=clamp(dragState.ow-dx,MIN,dragState.ox+dragState.ow);cropBox.x=dragState.ox+dragState.ow-nw;cropBox.w=nw;cropBox.h=cropRatio>0?nw/cropRatio:clamp(dragState.oh+dy,MIN,cH-cropBox.y);}else if(t==='tr'){var nw=clamp(dragState.ow+dx,MIN,cW-cropBox.x);var nh=cropRatio>0?nw/cropRatio:clamp(dragState.oh-dy,MIN,dragState.oy+dragState.oh);cropBox.y=dragState.oy+dragState.oh-nh;cropBox.w=nw;cropBox.h=nh;}else if(t==='tl'){var nw=clamp(dragState.ow-dx,MIN,dragState.ox+dragState.ow);var nh=cropRatio>0?nw/cropRatio:clamp(dragState.oh-dy,MIN,dragState.oy+dragState.oh);cropBox.x=dragState.ox+dragState.ow-nw;cropBox.y=dragState.oy+dragState.oh-nh;cropBox.w=nw;cropBox.h=nh;}renderCropBox();}document.addEventListener('touchmove',function(e){if(dragState){onMove(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault();}},{passive:false});document.addEventListener('mousemove',function(e){if(dragState)onMove(e.clientX,e.clientY);});document.addEventListener('touchend',function(){dragState=null;});document.addEventListener('mouseup',function(){dragState=null;});}
+function confirmEditor(){var canvas=document.getElementById('crop-canvas');var sx=cropImg.naturalWidth/canvas.width,sy=cropImg.naturalHeight/canvas.height;var fc=document.createElement('canvas');fc.width=cropImg.naturalWidth;fc.height=cropImg.naturalHeight;var fctx=fc.getContext('2d');fctx.drawImage(cropImg,0,0);if(edBW||edBrightness!==0||edContrast!==0){var id=fctx.getImageData(0,0,fc.width,fc.height);var d=id.data;var b=edBrightness*2.55;var f=(259*(edContrast+255))/(255*(259-edContrast));for(var i=0;i<d.length;i+=4){var r=clamp(d[i]+b,0,255),g=clamp(d[i+1]+b,0,255),bl=clamp(d[i+2]+b,0,255);r=clamp(f*(r-128)+128,0,255);g=clamp(f*(g-128)+128,0,255);bl=clamp(f*(bl-128)+128,0,255);if(edBW){var gr=0.299*r+0.587*g+0.114*bl;r=g=bl=gr;}d[i]=r;d[i+1]=g;d[i+2]=bl;}fctx.putImageData(id,0,0);}var out=document.createElement('canvas');out.width=Math.round(cropBox.w*sx);out.height=Math.round(cropBox.h*sy);out.getContext('2d').drawImage(fc,Math.round(cropBox.x*sx),Math.round(cropBox.y*sy),out.width,out.height,0,0,out.width,out.height);resizeAndFinalize(out.toDataURL('image/jpeg',0.95),function(final){setPhotoData(final);cancelEditor();toast('Foto editada!');});}
+function cancelEditor(){document.getElementById('editor-modal').style.display='none';dragState=null;cropImg=null;cropImgOriginal=null;}
+
+/* ── AUDIO ── */
+var audioCtx=null;
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playSuccess(){try{var ctx=getAudio();[523,659,784,1047].forEach(function(freq,i){var o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=freq;var t=ctx.currentTime+i*0.1;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.3,t+0.02);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);});}catch(e){}}
+function playError(){try{var ctx=getAudio();[200,180,160].forEach(function(freq,i){var o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.value=freq;var t=ctx.currentTime+i*0.15;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.35,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.start(t);o.stop(t+0.2);});}catch(e){}}
+
+/* ── QUIZ PLAY ── */
+var quizOrder=[],currentQIdx=0,answers=[],quizCfg={},currentAttempts=0,activeQuestions=[];
+function startQuizById(id){activeQuizId=id;var quiz=getQuiz(id);if(!quiz||!quiz.questions||!quiz.questions.length){toast('Este quiz não tem questões ainda.');return;}activeQuestions=quiz.questions;quizOrder=activeQuestions.map(function(_,i){return i;});currentQIdx=0;answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});currentAttempts=0;showScreen('quiz');document.getElementById('screen-title').textContent=quiz.name;renderQuizQ();}
+function startQuizFromDetail(){startQuizById(activeQuizId);}
+function getQCfg(qi){var q=activeQuestions[qi];return(q&&q.cfg)?q.cfg:{attempts:0,result:'score'};}
+function renderQuizQ(){var qi=quizOrder[currentQIdx],q=activeQuestions[qi],total=quizOrder.length;quizCfg=getQCfg(qi);currentAttempts=answers[currentQIdx].attempts;document.getElementById('q-counter-text').textContent='Questão '+(currentQIdx+1)+' de '+total;document.getElementById('progress-fill').style.width=(currentQIdx/total*100)+'%';var badge=document.getElementById('attempts-badge');if(quizCfg.attempts>0){badge.style.display='inline-flex';updateAttemptsBadge();}else{badge.style.display='none';}var img=document.getElementById('quiz-img');if(q.photo){img.src=q.photo;img.style.display='block';}else{img.style.display='none';}document.getElementById('quiz-text').textContent=q.text||'';renderQuizAlts(false);renderQuizNav(false);document.querySelector('.scroll-area').scrollTop=0;}
+function updateAttemptsBadge(){var rem=getQCfg(quizOrder[currentQIdx]).attempts-currentAttempts;document.getElementById('attempts-badge').textContent=rem+' tentativa'+(rem!==1?'s':'');}
+function renderQuizAlts(locked){var qi=quizOrder[currentQIdx],q=activeQuestions[qi],ci=q.alts.findIndex(function(a){return a.correct;});var ae=document.getElementById('quiz-alts');ae.innerHTML='';q.alts.forEach(function(alt,i){var cls='alt-btn';if(locked){if(i===ci)cls+=' correct';else if(i===answers[currentQIdx].chosen&&i!==ci)cls+=' wrong';}else if(i===answers[currentQIdx].chosen)cls+=' selected';var btn=document.createElement('button');btn.className=cls;if(locked)btn.disabled=true;btn.innerHTML='<span class="alt-key">'+LETTERS[i]+'</span>'+esc(alt.text);btn.onclick=locked?null:function(){selectAlt(i);};ae.appendChild(btn);});}
+function renderQuizNav(locked){var nav=document.getElementById('quiz-nav');nav.innerHTML='';if(!locked)return;var isLast=currentQIdx===quizOrder.length-1;var btn=document.createElement('button');btn.className='btn btn-primary btn-block';if(isLast){btn.textContent='Ver resultado ✓';btn.onclick=function(){buildResults();showScreen('results');document.getElementById('screen-title').textContent='Resultado';};}else{btn.textContent='Próxima →';btn.onclick=function(){currentQIdx++;currentAttempts=answers[currentQIdx].attempts;renderQuizQ();};}nav.appendChild(btn);}
+function selectAlt(i){var qi=quizOrder[currentQIdx],q=activeQuestions[qi],ci=q.alts.findIndex(function(a){return a.correct;});var isCorrect=(i===ci);try{getAudio();}catch(e){}if(isCorrect){answers[currentQIdx].chosen=i;answers[currentQIdx].correct=true;answers[currentQIdx].attempts=currentAttempts+1;playSuccess();showEmoji('👏');renderQuizAlts(true);renderQuizNav(true);}else{currentAttempts++;answers[currentQIdx].attempts=currentAttempts;answers[currentQIdx].chosen=i;if(quizCfg.attempts===0||currentAttempts>=quizCfg.attempts){answers[currentQIdx].correct=false;playError();showEmoji('😵');renderQuizAlts(true);renderQuizNav(true);}else{playError();showEmoji('😬');updateAttemptsBadge();var btns=document.querySelectorAll('.alt-btn');if(btns[i]){btns[i].classList.add('wrong');setTimeout(function(){if(btns[i]){btns[i].classList.remove('wrong','selected');}},600);}}}}
+function confirmAbort(){showModal('<h2>Encerrar quiz?</h2><p>O progresso será perdido.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="closeModal();goHome()">Encerrar</button><button class="btn btn-sm" onclick="closeModal()">Continuar</button></div>');}
+function buildResults(){var correct=0;answers.forEach(function(a){if(a.correct)correct++;});var total=quizOrder.length,pct=Math.round(correct/total*100);document.getElementById('res-correct').textContent=correct;document.getElementById('res-wrong').textContent=total-correct;document.getElementById('res-pct').textContent=pct+'%';var showRev=quizOrder.some(function(qi){return getQCfg(qi).result==='review';});var rev=document.getElementById('review-section');if(showRev){rev.style.display='block';var list=document.getElementById('results-list');list.innerHTML='';quizOrder.forEach(function(qi,idx){if(getQCfg(qi).result!=='review')return;var q=activeQuestions[qi],ans=answers[idx],ci=q.alts.findIndex(function(a){return a.correct;});var ok=ans.correct;var item=document.createElement('div');item.className='result-item';item.style.borderColor=ok?'var(--green-border)':'var(--red-border)';var imgH=q.photo?'<img class="result-img" src="'+q.photo+'" alt="">':'';var altsH='';q.alts.forEach(function(alt,ai){var cls='neutral',icon='';if(ai===ci){cls='correct';icon='✓ ';}else if(ai===ans.chosen&&!ok){cls='wrong';icon='✗ ';}altsH+='<div class="r-alt '+cls+'"><span class="rk">'+LETTERS[ai]+'</span>'+icon+esc(alt.text)+'</div>';});var lbl=q.text?q.text.substring(0,52)+(q.text.length>52?'…':''):'Questão '+(idx+1);item.innerHTML='<div class="result-header"><span>'+(idx+1)+'. '+esc(lbl)+'</span><span>'+(ok?'✅':'❌')+'</span></div>'+imgH+'<div class="result-alts">'+altsH+'</div>';list.appendChild(item);});}else{rev.style.display='none';}}
+function restartQuiz(){answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});currentQIdx=0;currentAttempts=0;showScreen('quiz');renderQuizQ();}
+
+
+/* ── SHARE QUIZ ── */
+function shareQuiz(id){
+  var quiz=getQuiz(id);if(!quiz)return;
+  var base=window.location.href.split('?')[0].split('#')[0];
+  var link=base+'?quiz='+id;
+  var html=
+    '<h2>Compartilhar: '+esc(quiz.name)+'</h2>'+
+    '<div class="field" style="margin-bottom:10px;">'+
+      '<label>Link direto</label>'+
+      '<div style="display:flex;gap:6px;">'+
+        '<input type="text" id="share-link-input" value="'+esc(link)+'" readonly style="flex:1;font-size:12px;">'+
+        '<button class="btn btn-sm btn-primary" onclick="copyShareLink()">Copiar</button>'+
+      '</div>'+
+    '</div>'+
+    '<div id="qr-container" style="display:flex;justify-content:center;padding:16px 0;"></div>'+
+    '<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-top:4px;">'+
+      '<div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Como instalar o app</div>'+
+      '<div style="font-size:13px;color:var(--text2);line-height:1.7;">'+
+        '<strong>iPhone/iPad:</strong> abra o link no Safari → toque em '+
+        '<span style="background:var(--surface3);padding:1px 5px;border-radius:4px;">⬆ Compartilhar</span> → '+
+        '<em>Adicionar à Tela de Início</em><br>'+
+        '<strong>Android:</strong> abra no Chrome → menu '+
+        '<span style="background:var(--surface3);padding:1px 5px;border-radius:4px;">⋮</span> → '+
+        '<em>Adicionar à tela inicial</em><br>'+
+        '<strong>PC:</strong> acesse o link — funciona direto no navegador'+
+      '</div>'+
+    '</div>'+
+    '<div class="row" style="margin-top:14px;">'+
+      '<button class="btn btn-green btn-sm" onclick="copyShareLink()">📋 Copiar link</button>'+
+      '<button class="btn btn-sm" onclick="closeModal()">Fechar</button>'+
+    '</div>';
+  showModal(html);
+  // Generate QR after modal is in DOM
+  setTimeout(function(){
+    var container=document.getElementById('qr-container');
+    if(!container)return;
+    container.innerHTML='';
+    if(typeof QRCode!=='undefined'){
+      new QRCode(container,{text:link,width:180,height:180,colorDark:'#1d1d1f',colorLight:'#ffffff'});
+    } else {
+      container.innerHTML='<p style="font-size:12px;color:var(--text3);">QR Code indisponível offline</p>';
+    }
+  },100);
+}
+function copyShareLink(){
+  var inp=document.getElementById('share-link-input');
+  if(!inp)return;
+  if(navigator.clipboard){navigator.clipboard.writeText(inp.value).then(function(){toast('Link copiado!');});}
+  else{inp.select();try{document.execCommand('copy');toast('Link copiado!');}catch(e){toast('Copie manualmente: '+inp.value);}}
+}
+
+/* ── AUTO OPEN QUIZ FROM URL ── */
+function checkUrlQuiz(){
+  var params=new URLSearchParams(window.location.search);
+  var qid=params.get('quiz');
+  if(qid){
+    var quiz=getQuiz(qid);
+    if(quiz&&canAccessQuiz(quiz)){
+      startQuizById(qid);
+    } else if(quiz){
+      toast('Você não tem acesso a este quiz.');
+    }
+  }
+}
+
+/* ── INIT ── */
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+(async function(){
+  await initUsers();
+  loadLS();
+  try{var sess=JSON.parse(localStorage.getItem('quiz_session')||'null');if(sess){var found=getUsers().find(function(u){return u.username===sess.username;});if(found){currentUser={username:found.username,role:found.role||'player'};enterApp();return;}}}catch(e){}
+  document.getElementById('login-screen').style.display='flex';
+})();
+
+/* ── USER MANAGEMENT ── */
+function renderUsersList(){
+  var el=document.getElementById("users-list"),users=getUsers();
+  el.innerHTML="";
+  var colors=["#0071e3","#1d9e75","#d93025","#6d28d9","#b45309","#0891b2"];
+  users.forEach(function(u,i){
+    var col=colors[i%colors.length];
+    var isMe=currentUser&&u.username===currentUser.username;
+    var isSystem=u.username==="master"||u.username==="admin";
+    var roleLabel=u.role==="masters"?"masters":u.role==="admin"?"admin":"jogador";
+    var roleTag=u.role==="player"?"role-player":"role-admin";
+    var row=document.createElement("div");row.className="user-row";
+    var init=u.username.substring(0,2).toUpperCase();
+    var actions="";
+    if(u.role==="player"){
+      // Any admin/masters can manage quiz access
+      actions+="<button class=\"btn btn-xs btn-green\" onclick=\"showUserAccessModal('"+esc(u.username)+"')\">🎮 Quizzes</button>";
+    }
+    if(isMasters()){
+      actions+="<button class=\"btn btn-xs btn-primary\" onclick=\"changePasswordModal('"+esc(u.username)+"')\">🔑</button>";
+      if(!isSystem&&!isMe){
+        actions+="<button class=\"btn btn-xs btn-danger\" onclick=\"deleteUser('"+esc(u.username)+"')\">✕</button>";
+      }
+    } else if(isMe&&u.role==="player"){
+      actions+="<button class=\"btn btn-xs btn-primary\" onclick=\"changePasswordModal('"+esc(u.username)+"')\">🔑 Senha</button>";
+    }
+    row.innerHTML="<div class=\"user-avatar\" style=\"background:"+col+"22;color:"+col+";\">"+ init+"</div>"+
+      "<div style=\"flex:1;min-width:0;\"><div class=\"user-name\">"+esc(u.username)+
+      (isMe?" <span style=\"font-size:11px;color:var(--text3);\">(você)</span>":"")+
+      " <span class=\"user-role-tag "+roleTag+"\">"+roleLabel+"</span></div></div>"+
+      (actions?"<div class=\"row\" style=\"gap:5px;\">"+actions+"</div>":
+       (isSystem?"<span style=\"font-size:11px;color:var(--text3);\">protegido</span>":""));
+    el.appendChild(row);
+  });
+  // Show add-user button only for masters
+  var addBtn=document.getElementById("btn-add-user");
+  if(addBtn)addBtn.style.display=isMasters()?"inline-flex":"none";
+}
+
+function changePasswordModal(un){
+  showModal("<h2>Alterar senha</h2><p>Usuário: <strong>"+esc(un)+"</strong></p>"+
+    "<div class=\"field\" style=\"margin-bottom:12px;\"><label>Nova senha</label>"+
+    "<input type=\"password\" id=\"new-pwd\" placeholder=\"mínimo 4 caracteres\"></div>"+
+    "<div class=\"field\" style=\"margin-bottom:16px;\"><label>Confirmar</label>"+
+    "<input type=\"password\" id=\"new-pwd2\" placeholder=\"repita a senha\"></div>"+
+    "<div class=\"row\"><button class=\"btn btn-primary btn-sm\" onclick=\"doChangePassword('"+esc(un)+"')\">✓ Alterar</button>"+
+    "<button class=\"btn btn-sm\" onclick=\"closeModal()\">Cancelar</button></div>");
+}
+async function doChangePassword(un){
+  var p1=document.getElementById("new-pwd").value;
+  var p2=document.getElementById("new-pwd2").value;
+  if(p1.length<4){toast("Senha mínima: 4 caracteres.");return;}
+  if(p1!==p2){toast("Senhas não coincidem.");return;}
+  // permission check: masters can change anyone; player only self; admin cannot change own
+  if(!isMasters()&&un!==currentUser.username){toast("Sem permissão.");return;}
+  var users=getUsers();
+  var u=users.find(function(x){return x.username===un;});
+  if(!u){toast("Usuário não encontrado.");return;}
+  u.hash=await sha256(p1);
+  saveUsers(users);closeModal();toast("Senha de "+un+" alterada!");
+}
+function deleteUser(un){
+  if(un==="master"||un==="admin"){toast("Usuário protegido.");return;}
+  showModal("<h2>Excluir "+esc(un)+"?</h2><p>Esta ação não pode ser desfeita.</p>"+
+    "<div class=\"row\"><button class=\"btn btn-danger btn-sm\" onclick=\"doDeleteUser('"+esc(un)+"')\">Excluir</button>"+
+    "<button class=\"btn btn-sm\" onclick=\"closeModal()\">Cancelar</button></div>");
+}
+function doDeleteUser(un){
+  if(un==="master"||un==="admin"){toast("Usuário protegido.");closeModal();return;}
+  var u=getUsers().filter(function(x){return x.username!==un;});
+  saveUsers(u);closeModal();renderUsersList();
+  // remove from quiz access lists
+  quizzes.forEach(function(q){if(q.accessUsers){q.accessUsers=q.accessUsers.filter(function(a){return a!==un;});}});
+  saveLS();toast("Usuário "+un+" removido.");
+}
+
+/* ── ACCESS MANAGEMENT ── */
+function showUserAccessModal(username){
+  var userQuizzes=quizzes.map(function(q){
+    var hasAccess=q.accessAll||(q.accessUsers&&q.accessUsers.indexOf(username)!==-1);
+    return {id:q.id,name:q.name,hasAccess:hasAccess};
+  });
+  var rows=userQuizzes.map(function(q){
+    return "<div class=\"user-check-item\"><input type=\"checkbox\" class=\"user-quiz-cb\" value=\""+esc(q.id)+"\""+
+      (q.hasAccess?" checked":"")+
+      (q.accessAll?" disabled title=\"Acesso geral — editável no quiz\"":"")+
+      "><label style=\"font-size:14px;cursor:pointer;\">"+esc(q.name)+(q.accessAll?" <span style=\"font-size:11px;color:var(--text3);\">(todos)</span>":"")+
+      "</label></div>";
+  }).join('') || "<p style=\"font-size:14px;color:var(--text2);\">Nenhum quiz criado ainda.</p>";
+  showModal("<h2>Acesso de "+esc(username)+"</h2>"+
+    "<p>Selecione os quizzes que <strong>"+esc(username)+"</strong> pode acessar:</p>"+
+    "<div style=\"max-height:280px;overflow-y:auto;margin-bottom:16px;\">"+rows+"</div>"+
+    "<div class=\"row\"><button class=\"btn btn-primary btn-sm\" onclick=\"saveUserAccess('"+esc(username)+"')\">✓ Salvar</button>"+
+    "<button class=\"btn btn-sm\" onclick=\"closeModal()\">Cancelar</button></div>");
+}
+function saveUserAccess(username){
+  var checked=[];
+  document.querySelectorAll(".user-quiz-cb:checked:not(:disabled)").forEach(function(cb){checked.push(cb.value);});
+  var unchecked=[];
+  document.querySelectorAll(".user-quiz-cb:not(:checked):not(:disabled)").forEach(function(cb){unchecked.push(cb.value);});
+  quizzes.forEach(function(q){
+    if(q.accessAll)return; // don't touch "all" quizzes
+    if(!q.accessUsers)q.accessUsers=[];
+    if(checked.indexOf(q.id)!==-1){
+      if(q.accessUsers.indexOf(username)===-1)q.accessUsers.push(username);
+    } else {
+      q.accessUsers=q.accessUsers.filter(function(u){return u!==username;});
+    }
+  });
+  isDirty=true;saveLS();closeModal();toast("Acesso de "+username+" atualizado!");
+}
+
+function showAddUserModal(){
+  showModal("<h2>Adicionar usuário</h2>"+
+    "<div class=\"field\" style=\"margin-bottom:12px;\"><label>Usuário</label><input type=\"text\" id=\"new-uname\"></div>"+
+    "<div class=\"field\" style=\"margin-bottom:16px;\"><label>Senha</label><input type=\"password\" id=\"new-upass\"></div>"+
+    "<div class=\"row\"><button class=\"btn btn-primary btn-sm\" onclick=\"addUserFromModal()\">✓ Adicionar</button>"+
+    "<button class=\"btn btn-sm\" onclick=\"closeModal()\">Cancelar</button></div>");
+}
+async function addUserFromModal(){
+  var un=document.getElementById("new-uname").value.trim().toLowerCase();
+  var up=document.getElementById("new-upass").value;
+  if(!un||!up){toast("Preencha todos os campos.");return;}
+  if(!/^[a-z0-9_]{3,20}$/.test(un)){toast("Usuário inválido (3-20 chars, letras/números).");return;}
+  if(un==="master"||un==="admin"){toast("Nome reservado.");return;}
+  var users=getUsers();
+  if(users.find(function(x){return x.username===un;})){toast("Usuário já existe.");return;}
+  users.push({username:un,role:"player",hash:await sha256(up)});
+  saveUsers(users);closeModal();renderUsersList();toast("Usuário "+un+" adicionado!");
+}
+
+
+
+</script>
+</body>
+</html>
