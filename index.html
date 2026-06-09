@@ -546,7 +546,7 @@ function enterApp(){
   shell.style.display='flex';
   buildHomeToolbar();
   renderQuizList();
-  loadFromGitHub(); // always load from GitHub on login
+  if(isAdminRole()&&hasCfg())loadFromGitHub();
   updateTopbar();
   checkUrlQuiz();
   checkInstallBanner();
@@ -590,20 +590,8 @@ function loadLS(){try{var d=localStorage.getItem('quiz_v5');if(d){var p=JSON.par
   if(old){var qs=JSON.parse(old);if(Array.isArray(qs)&&qs.length){quizzes=[{id:Date.now()+'',name:'Quiz importado',createdBy:'admin',accessAll:true,accessUsers:[],questions:qs}];saveLS();}}}catch(e){quizzes=[];}}
 
 /* ── GITHUB ── */
-var DEFAULT_CFG={user:'andrelbaptista',repo:'quiz-fotos',file:'quiz-data.json',token:'ghp_o0DwXzmJqiGtidX51GoiMJ86OyvAjw4VYmsp'};
-function getCfg(){
-  try{
-    var s=JSON.parse(localStorage.getItem('quiz_cfg')||'{}');
-    // Always use token from code — never from localStorage
-    return {
-      user:s.user||DEFAULT_CFG.user,
-      repo:s.repo||DEFAULT_CFG.repo,
-      file:s.file||DEFAULT_CFG.file,
-      token:DEFAULT_CFG.token
-    };
-  }catch(e){return DEFAULT_CFG;}
-}
-function hasCfg(){return true;}
+function getCfg(){try{return JSON.parse(localStorage.getItem('quiz_cfg')||'{}');}catch(e){return{};}}
+function hasCfg(){var c=getCfg();return!!(c.user&&c.repo&&c.file&&c.token);}
 function ghH(){var c=getCfg();return{'Authorization':'token '+c.token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};}
 function ghUrl(){var c=getCfg();return'https://api.github.com/repos/'+c.user+'/'+c.repo+'/contents/'+c.file;}
 function saveGHConfig(){
