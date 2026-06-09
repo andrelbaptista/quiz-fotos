@@ -224,6 +224,14 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     <!-- QUIZ LIST (home for all users) -->
     <div class="screen active" id="screen-home">
       <div id="sync-bar" class="sync-bar" style="display:none;"></div>
+      <div id="unsaved-banner" style="display:none;background:var(--amber-bg);border:1px solid var(--amber-text);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;display:none;align-items:center;gap:10px;">
+        <span style="font-size:20px;">⚠️</span>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;color:var(--amber-text);">Alterações não salvas no GitHub</div>
+          <div style="font-size:12px;color:var(--amber-text);margin-top:2px;">Toque em ☁ Salvar para sincronizar com todos os dispositivos</div>
+        </div>
+        <button class="btn btn-sm" onclick="syncToGitHub()" style="background:var(--amber-text);color:#fff;border-color:var(--amber-text);flex-shrink:0;">☁ Salvar agora</button>
+      </div>
       <div class="toolbar" id="home-toolbar"></div>
       <div id="quiz-list"></div>
       <div id="empty-home" class="empty" style="display:none;">
@@ -567,8 +575,8 @@ function confirmLogout(){showModal('<h2>Sair?</h2><p>Você será desconectado.</
 function doLogout(){
   currentUser=null;
   localStorage.removeItem('quiz_session');
-  localStorage.removeItem('quiz_v5'); // clear quiz cache so fresh load on next login
-  quizzes=[];ghSha=null;isDirty=false;
+  // Keep quiz cache - reload from GitHub on next login
+  ghSha=null;
   closeModal();
   document.getElementById('app-shell').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -618,7 +626,10 @@ function loadCfgForm(){
 }
 function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
 function loadFromGitHub(){if(!hasCfg())return;setSyncBar('loading','⏳ Carregando...');fetch(ghUrl(),{headers:ghH(),cache:'no-store'}).then(function(r){if(r.status===404){setSyncBar('synced','✓ Conectado — sem dados ainda');return null;}if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(!data)return;ghSha=data.sha;var json=JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,'')))));quizzes=json.quizzes||[];saveLS();isDirty=false;renderQuizList();setSyncBar('synced','✓ Sincronizado');toast('Dados carregados!');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
-function syncToGitHub(){if(!hasCfg()){toast('Configure o GitHub no painel Admin.');return;}setSyncBar('loading','⏳ Salvando...');var content=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));var body={message:'Atualizar quizzes',content:content};if(ghSha)body.sha=ghSha;fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)}).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();}).then(function(data){ghSha=data.content.sha;isDirty=false;setSyncBar('synced','✓ Salvo');toast('Salvo no GitHub! ✓');renderQuizList();}).catch(function(e){setSyncBar('error','✗ '+e.message);toast('Erro: '+e.message);});}
+function syncToGitHub(){if(!hasCfg()){toast('Configure o GitHub no painel Admin.');return;}setSyncBar('loading','⏳ Salvando...');var content=btoa(unescape(encodeURIComponent(JSON.stringify({version:5,quizzes:quizzes},null,2))));var body={message:'Atualizar quizzes',content:content};if(ghSha)body.sha=ghSha;fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)}).then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();}).then(function(data){ghSha=data.content.sha;isDirty=false;
+    var ub=document.getElementById('unsaved-banner');if(ub)ub.style.display='none';
+    setSyncBar('synced','✓ Salvo no GitHub — todos os dispositivos sincronizados');
+    toast('Salvo no GitHub! ✓');renderQuizList();}).catch(function(e){setSyncBar('error','✗ '+e.message);toast('Erro: '+e.message);});}
 function setSyncBar(type,msg){['sync-bar'].forEach(function(id){var el=document.getElementById(id);if(!el)return;el.style.display='flex';el.className='sync-bar '+type;el.innerHTML=(type==='loading'?'<span class="spinner"></span> ':'')+msg;});}
 
 /* ── SCREENS ── */
@@ -688,7 +699,7 @@ function renderAdminQuizList(){
       '</div>';
     el.appendChild(card);
   });
-  if(isDirty&&hasCfg())setSyncBar('unsynced','● Alterações não salvas');
+  if(isDirty&&hasCfg())setSyncBar('unsynced','⚠️ Alterações não salvas — toque em ☁ Salvar');
 }
 function goHome(){activeQuizId=null;showScreen('home');renderQuizList();}
 function buildHomeToolbar(){
@@ -738,7 +749,14 @@ function renderQuizList(){
       (isAdmin?'<div class="quiz-card-actions">'+adminActions+'</div>':'');
     el.appendChild(card);
   });
-  if(isDirty&&hasCfg()&&isAdmin)setSyncBar('unsynced','● Alterações não salvas');
+  if(isDirty&&hasCfg()&&isAdmin){
+    setSyncBar('unsynced','● Alterações não salvas no GitHub');
+    var ub=document.getElementById('unsaved-banner');
+    if(ub)ub.style.display='flex';
+  } else {
+    var ub=document.getElementById('unsaved-banner');
+    if(ub)ub.style.display='none';
+  }
 }
 
 /* ── CREATE / EDIT QUIZ META ── */
@@ -802,7 +820,19 @@ function confirmDeleteQuiz(id){
   var quiz=getQuiz(id);if(!quiz)return;
   showModal('<h2>Excluir quiz?</h2><p>O quiz <strong>'+esc(quiz.name)+'</strong> e todas as suas questões serão removidos.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="deleteQuiz(\''+id+'\')">Excluir</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');
 }
-function deleteQuiz(id){quizzes=quizzes.filter(function(q){return q.id!==id;});isDirty=true;saveLS();closeModal();renderQuizList();toast('Quiz excluído.');}
+function deleteQuiz(id){
+  quizzes=quizzes.filter(function(q){return q.id!==id;});
+  isDirty=true;saveLS();closeModal();renderQuizList();
+  setTimeout(function(){
+    showModal('<h2>Quiz excluído</h2>'+
+      '<div style="background:var(--amber-bg);border:0.5px solid var(--amber-text);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">'+
+        '<strong style="color:var(--amber-text);">⚠️ Último passo!</strong>'+
+        '<p style="color:var(--amber-text);font-size:13px;margin-top:4px;">Toque em <strong>☁ Salvar</strong> para sincronizar a exclusão com o GitHub.</p>'+
+      '</div>'+
+      '<div class="row"><button class="btn btn-green btn-sm" onclick="closeModal();syncToGitHub()">☁ Salvar no GitHub agora</button>'+
+      '<button class="btn btn-sm" onclick="closeModal()">Depois</button></div>');
+  },300);
+}
 
 /* ── QUIZ DETAIL (manage questions) ── */
 function openQuizDetail(id){
@@ -857,9 +887,21 @@ function finalizeQuiz(){
     return;
   }
   isDirty=true;saveLS();
-  toast('Quiz "'+quiz.name+'" salvo com '+quiz.questions.length+' questão'+(quiz.questions.length>1?'es':'')+'!');
+  var qname=quiz.name;var qcount=quiz.questions.length;
   activeQuizId=null;editingQIdx=null;currentPhotoData=null;currentAlts=[];
   goHome();
+  setTimeout(function(){
+    showModal('<h2>Quiz salvo! ✅</h2>'+
+      '<p>O quiz <strong>'+esc(qname)+'</strong> foi salvo com '+qcount+' questão'+(qcount>1?'es':'')+' neste dispositivo.</p>'+
+      '<div style="background:var(--amber-bg);border:0.5px solid var(--amber-text);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;">'+
+        '<strong style="color:var(--amber-text);">⚠️ Último passo!</strong>'+
+        '<p style="color:var(--amber-text);font-size:13px;margin-top:4px;">Toque em <strong>☁ Salvar</strong> para sincronizar com o GitHub e disponibilizar em todos os dispositivos.</p>'+
+      '</div>'+
+      '<div class="row">'+
+        '<button class="btn btn-green btn-sm" onclick="closeModal();syncToGitHub()">☁ Salvar no GitHub agora</button>'+
+        '<button class="btn btn-sm" onclick="closeModal()">Depois</button>'+
+      '</div>');
+  },400);
 }
 function cancelQuizCreation(){
   showModal('<h2>Cancelar quiz?</h2><p>Todas as questões adicionadas serão perdidas.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="doCancelQuizCreation()">Cancelar quiz</button><button class="btn btn-sm" onclick="closeModal()">Continuar editando</button></div>');
