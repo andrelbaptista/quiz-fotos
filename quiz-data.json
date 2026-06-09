@@ -59,6 +59,28 @@
             "attempts": 5,
             "result": "score"
           }
+        },
+        {
+          "photo": null,
+          "text": "Quem sou eu vovô ?",
+          "alts": [
+            {
+              "text": "Ian",
+              "correct": false
+            },
+            {
+              "text": "Felipe",
+              "correct": false
+            },
+            {
+              "text": "João Felipe",
+              "correct": true
+            }
+          ],
+          "cfg": {
+            "attempts": 3,
+            "result": "review"
+          }
         }
       ]
     }
