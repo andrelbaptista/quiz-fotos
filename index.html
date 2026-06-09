@@ -286,31 +286,58 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
     <!-- ADMIN PANEL -->
     <div class="screen" id="screen-admin">
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <span style="font-size:15px;font-weight:600;">Usuários cadastrados</span>
-          <button class="btn btn-sm btn-purple" id="btn-add-user" onclick="showAddUserModal()" style="display:none;">+ Adicionar</button>
-        </div>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Toque em 🎮 para definir quais quizzes o usuário pode acessar.</p>
-        <div id="users-list"></div>
+      <!-- TAB BAR -->
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-sm" id="atab-quizzes" onclick="showAdminTab('quizzes')">📋 Pesquisas</button>
+        <button class="btn btn-sm" id="atab-users" onclick="showAdminTab('users')">👥 Usuários</button>
+        <button class="btn btn-sm" id="atab-github" onclick="showAdminTab('github')" style="display:none;">⚙ GitHub</button>
       </div>
-      <!-- GitHub config: only visible to master -->
-      <div class="card" id="github-config-card" style="display:none;">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">Configuração do GitHub para sincronizar entre dispositivos.</p>
-        <div class="field"><label>Usuário GitHub</label><input type="text" id="cfg-user" placeholder="ex: andrelbaptista"></div>
-        <div class="field"><label>Repositório</label><input type="text" id="cfg-repo" placeholder="ex: quiz-fotos"></div>
-        <div class="field"><label>Arquivo de dados</label><input type="text" id="cfg-file" placeholder="ex: quiz-data.json"></div>
-        <div class="field">
-          <label>Token de acesso</label>
-          <input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx">
-          <p style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">GitHub → Settings → Developer settings → Personal access tokens → marque <strong>repo</strong></p>
+
+      <!-- TAB: QUIZZES -->
+      <div id="atab-content-quizzes">
+        <div id="sync-bar" class="sync-bar" style="display:none;"></div>
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm" onclick="closeModal();showCreateQuizModal()">+ Nova pesquisa</button>
+          <button class="btn btn-sm" id="btn-sync" onclick="syncToGitHub()" style="display:none;">☁ Salvar no GitHub</button>
         </div>
-        <div class="divider"></div>
-        <div class="row">
-          <button class="btn btn-primary btn-sm" onclick="saveGHConfig()">✓ Salvar GitHub</button>
-          <button class="btn btn-sm" onclick="testConnection()">🔗 Testar</button>
-          <button class="btn btn-sm" id="btn-sync-admin" onclick="syncToGitHub()">☁ Salvar dados</button>
-          <button class="btn btn-sm" onclick="loadFromGitHub()">⬇ Recarregar</button>
+        <div id="admin-quiz-list"></div>
+        <div id="empty-admin-quizzes" class="empty" style="display:none;">
+          <div class="ico">📋</div>
+          <p>Nenhuma pesquisa criada.<br>Toque em <strong>+ Nova pesquisa</strong>.</p>
+        </div>
+      </div>
+
+      <!-- TAB: USERS -->
+      <div id="atab-content-users" style="display:none;">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:15px;font-weight:600;">Usuários</span>
+            <button class="btn btn-sm btn-purple" id="btn-add-user" onclick="showAddUserModal()" style="display:none;">+ Adicionar</button>
+          </div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">🎮 = definir acesso aos quizzes · 🔑 = alterar senha</p>
+          <div id="users-list"></div>
+        </div>
+      </div>
+
+      <!-- TAB: GITHUB (master only) -->
+      <div id="atab-content-github" style="display:none;">
+        <div class="card">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">Sincronizar dados entre dispositivos via GitHub.</p>
+          <div class="field"><label>Usuário GitHub</label><input type="text" id="cfg-user" placeholder="ex: andrelbaptista"></div>
+          <div class="field"><label>Repositório</label><input type="text" id="cfg-repo" placeholder="ex: quiz-fotos"></div>
+          <div class="field"><label>Arquivo de dados</label><input type="text" id="cfg-file" placeholder="ex: quiz-data.json"></div>
+          <div class="field">
+            <label>Token de acesso</label>
+            <input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx">
+            <p style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">GitHub → Settings → Developer settings → Personal access tokens → marque <strong>repo</strong></p>
+          </div>
+          <div class="divider"></div>
+          <div class="row">
+            <button class="btn btn-primary btn-sm" onclick="saveGHConfig()">✓ Salvar</button>
+            <button class="btn btn-sm" onclick="testConnection()">🔗 Testar</button>
+            <button class="btn btn-sm" onclick="syncToGitHub()">☁ Salvar dados</button>
+            <button class="btn btn-sm" onclick="loadFromGitHub()">⬇ Recarregar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -542,7 +569,74 @@ function syncToGitHub(){if(!hasCfg()){toast('Configure o GitHub no painel Admin.
 function setSyncBar(type,msg){['sync-bar'].forEach(function(id){var el=document.getElementById(id);if(!el)return;el.style.display='flex';el.className='sync-bar '+type;el.innerHTML=(type==='loading'?'<span class="spinner"></span> ':'')+msg;});}
 
 /* ── SCREENS ── */
-function showScreen(name){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById('screen-'+name).classList.add('active');var titles={home:'Quiz de Fotos',add:editingQIdx!==null?'Editar questão':'Nova questão',quiz:'Quiz',results:'Resultado',admin:'Administração','quiz-detail':'Questões'};document.getElementById('screen-title').textContent=titles[name]||'';if(name==='admin'){renderUsersList();if(isMasters()){document.getElementById('github-config-card').style.display='block';loadCfgForm();}else{document.getElementById('github-config-card').style.display='none';}document.getElementById('topbar-actions').innerHTML='<button class="btn btn-sm" onclick="goHome()">← Início</button>';}document.querySelector('.scroll-area').scrollTop=0;updateTopbar();}
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('screen-'+name).classList.add('active');
+  var titles={home:'Quiz de Fotos',add:editingQIdx!==null?'Editar questão':'Nova questão',quiz:'Quiz',results:'Resultado',admin:'Painel Admin','quiz-detail':'Questões'};
+  document.getElementById('screen-title').textContent=titles[name]||'';
+  if(name==='admin'){
+    // show github tab only for master
+    document.getElementById('atab-github').style.display=isMasters()?'inline-flex':'none';
+    showAdminTab('quizzes');
+    renderAdminQuizList();
+  }
+  document.querySelector('.scroll-area').scrollTop=0;
+  updateTopbar();
+  // always show back button
+  var act=document.getElementById('topbar-actions');
+  if(name==='admin'){
+    var icon=currentUser.role==='masters'?'👑':currentUser.role==='admin'?'🛠':'👤';
+    act.innerHTML='<button class="btn btn-sm" onclick="goHome()">← Início</button>'+
+      '<div class="user-badge '+(isAdminRole()?'admin':'player')+'" onclick="confirmLogout()" title="Sair">'+icon+' '+esc(currentUser.username)+' <span style="font-size:10px;opacity:0.7;">sair</span></div>';
+  }
+}
+
+function showAdminTab(tab){
+  ['quizzes','users','github'].forEach(function(t){
+    var btn=document.getElementById('atab-'+t);
+    var content=document.getElementById('atab-content-'+t);
+    if(btn) btn.style.background=t===tab?'var(--blue)':'' ;
+    if(btn) btn.style.borderColor=t===tab?'var(--blue)':'';
+    if(btn) btn.style.color=t===tab?'#fff':'';
+    if(content) content.style.display=t===tab?'block':'none';
+  });
+  if(tab==='users'){renderUsersList();}
+  if(tab==='github'&&isMasters()){loadCfgForm();}
+  if(tab==='quizzes'){renderAdminQuizList();}
+}
+
+function renderAdminQuizList(){
+  var el=document.getElementById('admin-quiz-list');
+  var empty=document.getElementById('empty-admin-quizzes');
+  var syncBtn=document.getElementById('btn-sync');
+  if(!el)return;
+  el.innerHTML='';
+  if(!quizzes.length){if(empty)empty.style.display='block';if(syncBtn)syncBtn.style.display='none';return;}
+  if(empty)empty.style.display='none';
+  if(syncBtn)syncBtn.style.display=hasCfg()?'inline-flex':'none';
+  quizzes.forEach(function(quiz){
+    var card=document.createElement('div');card.className='quiz-card';
+    var qCount=quiz.questions?quiz.questions.length:0;
+    var accessLabel=quiz.accessAll?'<span class="access-chip all">Todos</span>':
+      (quiz.accessUsers||[]).map(function(u){return'<span class="access-chip">'+esc(u)+'</span>';}).join('')||'<span class="access-chip">Nenhum</span>';
+    card.innerHTML=
+      '<div class="quiz-card-header">'+
+        '<div class="quiz-card-icon">📋</div>'+
+        '<div class="quiz-card-info">'+
+          '<div class="quiz-card-name">'+esc(quiz.name)+'</div>'+
+          '<div class="quiz-card-meta">'+qCount+' questão'+(qCount!==1?'s':'')+' · '+accessLabel+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="quiz-card-actions">'+
+        "<button class=\"btn btn-xs btn-warning\" onclick=\"editQuizMeta('"+quiz.id+"')\">✏ Editar</button>"+
+        "<button class=\"btn btn-xs\" onclick=\"openQuizDetail('"+quiz.id+"')\">📝 Questões</button>"+
+        "<button class=\"btn btn-xs btn-primary\" onclick=\"shareQuiz('"+quiz.id+"')\">🔗 Compartilhar</button>"+
+        "<button class=\"btn btn-xs btn-danger\" onclick=\"confirmDeleteQuiz('"+quiz.id+"')\">✕ Excluir</button>"+
+      '</div>';
+    el.appendChild(card);
+  });
+  if(isDirty&&hasCfg())setSyncBar('unsynced','● Alterações não salvas');
+}
 function goHome(){activeQuizId=null;showScreen('home');renderQuizList();}
 function buildHomeToolbar(){
   var tb=document.getElementById('home-toolbar');tb.innerHTML='';
@@ -706,12 +800,13 @@ function finalizeQuiz(){
   var quiz=getQuiz(activeQuizId);
   if(!quiz){goHome();return;}
   if(!quiz.questions||!quiz.questions.length){
-    showModal('<h2>Quiz vazio</h2><p>Adicione pelo menos uma questão antes de finalizar.</p><div class="row"><button class="btn btn-primary btn-sm" onclick="closeModal()">OK</button></div>');
+    showModal('<h2>Nenhuma questão salva</h2><p>Salve pelo menos uma questão com <strong>✓ Salvar questão</strong> antes de finalizar o quiz.</p><div class="row"><button class="btn btn-primary btn-sm" onclick="closeModal()">Entendi</button></div>');
     return;
   }
   isDirty=true;saveLS();
-  toast('Quiz "'+quiz.name+'" finalizado com '+quiz.questions.length+' questão'+(quiz.questions.length>1?'es':'')+'!');
-  activeQuizId=null;goHome();
+  toast('Quiz "'+quiz.name+'" salvo com '+quiz.questions.length+' questão'+(quiz.questions.length>1?'es':'')+'!');
+  activeQuizId=null;editingQIdx=null;currentPhotoData=null;currentAlts=[];
+  goHome();
 }
 function cancelQuizCreation(){
   showModal('<h2>Cancelar quiz?</h2><p>Todas as questões adicionadas serão perdidas.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="doCancelQuizCreation()">Cancelar quiz</button><button class="btn btn-sm" onclick="closeModal()">Continuar editando</button></div>');
@@ -732,7 +827,7 @@ function removeAlt(i){currentAlts.splice(i,1);if(!currentAlts.some(function(a){r
 function setCorrect(i){currentAlts.forEach(function(a,idx){a.correct=(idx===i);});}
 function saveQuestion(){
   var texts=currentAlts.map(function(a){return a.text.trim();});
-  if(texts.some(function(t){return !t;})){toast('Preencha todas as alternativas.');return;}
+  if(texts.some(function(t){return !t;})){toast('Preencha todas as alternativas ou remova as vazias.');return;}
   if(!currentAlts.some(function(a){return a.correct;})){toast('Marque a alternativa correta.');return;}
   var quiz=getQuiz(activeQuizId);if(!quiz)return;
   var q={photo:currentPhotoData,text:document.getElementById('q-text').value.trim(),alts:currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}),cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value}};
