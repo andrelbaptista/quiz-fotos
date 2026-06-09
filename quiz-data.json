@@ -263,6 +263,28 @@
             "attempts": 4,
             "result": "review"
           }
+        },
+        {
+          "photo": null,
+          "text": "Joga boia. É briga ?",
+          "alts": [
+            {
+              "text": "Sim",
+              "correct": false
+            },
+            {
+              "text": "Eu André e os netos",
+              "correct": true
+            },
+            {
+              "text": "Não sei quem é",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 4,
+            "result": "review"
+          }
         }
       ]
     }
