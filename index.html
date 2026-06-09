@@ -229,8 +229,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <div class="card" id="quiz-detail-header"></div>
       <div class="toolbar">
         <button class="btn btn-primary btn-sm" onclick="goAddQuestion()">+ Nova questão</button>
-        <button class="btn btn-green btn-sm" onclick="finalizeQuiz()">✅ Finalizar quiz</button>
-        <button class="btn btn-danger btn-sm" onclick="cancelQuizCreation()">✕ Cancelar quiz</button>
+        <button class="btn btn-green btn-sm" onclick="finalizeQuiz()">💾 Salvar quiz</button>
+        <button class="btn btn-danger btn-sm" onclick="cancelQuizCreation()">🗑 Descartar quiz</button>
       </div>
       <div id="q-list"></div>
       <div id="empty-questions" class="empty" style="display:none;">
@@ -279,6 +279,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         <div class="row">
           <button class="btn btn-primary" id="btn-save-q" onclick="saveQuestion()">✓ Salvar questão</button>
           <button class="btn btn-danger" onclick="discardQuestion()">✗ Descartar</button>
+          <button class="btn btn-green btn-block" onclick="finalizeQuiz()" style="margin-top:8px;">💾 Salvar quiz</button>
         </div>
       </div>
     </div>
@@ -505,9 +506,13 @@ function enterApp(){
 function updateTopbar(){
   if(!currentUser)return;
   var act=document.getElementById('topbar-actions');
-  var roleLabel=currentUser.role==='masters'?'Masters':currentUser.role==='admin'?'Admin':'Jogador';
+  var icon=currentUser.role==='masters'?'👑':currentUser.role==='admin'?'🛠':'👤';
   var badgeClass=isAdminRole()?'admin':'player';
-  act.innerHTML='<div class="user-badge '+badgeClass+'" onclick="confirmLogout()">'+roleLabel+': '+esc(currentUser.username)+' ↩</div>';
+  act.innerHTML=
+    '<div class="user-badge '+badgeClass+'" onclick="confirmLogout()" title="Clique para sair">'+
+      icon+' '+esc(currentUser.username)+
+      ' <span style="font-size:10px;opacity:0.7;">sair</span>'+
+    '</div>';
 }
 function confirmLogout(){showModal('<h2>Sair?</h2><p>Você será desconectado.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="doLogout()">Sair</button><button class="btn btn-sm" onclick="closeModal()">Cancelar</button></div>');}
 function doLogout(){currentUser=null;localStorage.removeItem('quiz_session');closeModal();document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-user').value='';document.getElementById('login-pass').value='';switchLoginTab('login');}
@@ -793,7 +798,23 @@ function getQCfg(qi){var q=activeQuestions[qi];return(q&&q.cfg)?q.cfg:{attempts:
 function renderQuizQ(){var qi=quizOrder[currentQIdx],q=activeQuestions[qi],total=quizOrder.length;quizCfg=getQCfg(qi);currentAttempts=answers[currentQIdx].attempts;document.getElementById('q-counter-text').textContent='Questão '+(currentQIdx+1)+' de '+total;document.getElementById('progress-fill').style.width=(currentQIdx/total*100)+'%';var badge=document.getElementById('attempts-badge');if(quizCfg.attempts>0){badge.style.display='inline-flex';updateAttemptsBadge();}else{badge.style.display='none';}var img=document.getElementById('quiz-img');if(q.photo){img.src=q.photo;img.style.display='block';}else{img.style.display='none';}document.getElementById('quiz-text').textContent=q.text||'';renderQuizAlts(false);renderQuizNav(false);document.querySelector('.scroll-area').scrollTop=0;}
 function updateAttemptsBadge(){var rem=getQCfg(quizOrder[currentQIdx]).attempts-currentAttempts;document.getElementById('attempts-badge').textContent=rem+' tentativa'+(rem!==1?'s':'');}
 function renderQuizAlts(locked){var qi=quizOrder[currentQIdx],q=activeQuestions[qi],ci=q.alts.findIndex(function(a){return a.correct;});var ae=document.getElementById('quiz-alts');ae.innerHTML='';q.alts.forEach(function(alt,i){var cls='alt-btn';if(locked){if(i===ci)cls+=' correct';else if(i===answers[currentQIdx].chosen&&i!==ci)cls+=' wrong';}else if(i===answers[currentQIdx].chosen)cls+=' selected';var btn=document.createElement('button');btn.className=cls;if(locked)btn.disabled=true;btn.innerHTML='<span class="alt-key">'+LETTERS[i]+'</span>'+esc(alt.text);btn.onclick=locked?null:function(){selectAlt(i);};ae.appendChild(btn);});}
-function renderQuizNav(locked){var nav=document.getElementById('quiz-nav');nav.innerHTML='';if(!locked)return;var isLast=currentQIdx===quizOrder.length-1;var btn=document.createElement('button');btn.className='btn btn-primary btn-block';if(isLast){btn.textContent='Ver resultado ✓';btn.onclick=function(){buildResults();showScreen('results');document.getElementById('screen-title').textContent='Resultado';};}else{btn.textContent='Próxima →';btn.onclick=function(){currentQIdx++;currentAttempts=answers[currentQIdx].attempts;renderQuizQ();};}nav.appendChild(btn);}
+function renderQuizNav(locked){
+  var nav=document.getElementById('quiz-nav');
+  nav.innerHTML='';
+  if(!locked)return; // only show after answering
+  var isLast=currentQIdx===quizOrder.length-1;
+  var btn=document.createElement('button');
+  btn.className='btn btn-primary btn-block';
+  btn.style.marginTop='8px';
+  if(isLast){
+    btn.textContent='Ver resultado ✓';
+    btn.onclick=function(){buildResults();showScreen('results');document.getElementById('screen-title').textContent='Resultado';};
+  } else {
+    btn.textContent='Próxima questão →';
+    btn.onclick=function(){currentQIdx++;currentAttempts=answers[currentQIdx].attempts;renderQuizQ();};
+  }
+  nav.appendChild(btn);
+}
 function selectAlt(i){var qi=quizOrder[currentQIdx],q=activeQuestions[qi],ci=q.alts.findIndex(function(a){return a.correct;});var isCorrect=(i===ci);try{getAudio();}catch(e){}if(isCorrect){answers[currentQIdx].chosen=i;answers[currentQIdx].correct=true;answers[currentQIdx].attempts=currentAttempts+1;playSuccess();showEmoji('👏');renderQuizAlts(true);renderQuizNav(true);}else{currentAttempts++;answers[currentQIdx].attempts=currentAttempts;answers[currentQIdx].chosen=i;if(quizCfg.attempts===0||currentAttempts>=quizCfg.attempts){answers[currentQIdx].correct=false;playError();showEmoji('😵');renderQuizAlts(true);renderQuizNav(true);}else{playError();showEmoji('😬');updateAttemptsBadge();var btns=document.querySelectorAll('.alt-btn');if(btns[i]){btns[i].classList.add('wrong');setTimeout(function(){if(btns[i]){btns[i].classList.remove('wrong','selected');}},600);}}}}
 function confirmAbort(){showModal('<h2>Encerrar quiz?</h2><p>O progresso será perdido.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="closeModal();goHome()">Encerrar</button><button class="btn btn-sm" onclick="closeModal()">Continuar</button></div>');}
 function buildResults(){var correct=0;answers.forEach(function(a){if(a.correct)correct++;});var total=quizOrder.length,pct=Math.round(correct/total*100);document.getElementById('res-correct').textContent=correct;document.getElementById('res-wrong').textContent=total-correct;document.getElementById('res-pct').textContent=pct+'%';var showRev=quizOrder.some(function(qi){return getQCfg(qi).result==='review';});var rev=document.getElementById('review-section');if(showRev){rev.style.display='block';var list=document.getElementById('results-list');list.innerHTML='';quizOrder.forEach(function(qi,idx){if(getQCfg(qi).result!=='review')return;var q=activeQuestions[qi],ans=answers[idx],ci=q.alts.findIndex(function(a){return a.correct;});var ok=ans.correct;var item=document.createElement('div');item.className='result-item';item.style.borderColor=ok?'var(--green-border)':'var(--red-border)';var imgH=q.photo?'<img class="result-img" src="'+q.photo+'" alt="">':'';var altsH='';q.alts.forEach(function(alt,ai){var cls='neutral',icon='';if(ai===ci){cls='correct';icon='✓ ';}else if(ai===ans.chosen&&!ok){cls='wrong';icon='✗ ';}altsH+='<div class="r-alt '+cls+'"><span class="rk">'+LETTERS[ai]+'</span>'+icon+esc(alt.text)+'</div>';});var lbl=q.text?q.text.substring(0,52)+(q.text.length>52?'…':''):'Questão '+(idx+1);item.innerHTML='<div class="result-header"><span>'+(idx+1)+'. '+esc(lbl)+'</span><span>'+(ok?'✅':'❌')+'</span></div>'+imgH+'<div class="result-alts">'+altsH+'</div>';list.appendChild(item);});}else{rev.style.display='none';}}
