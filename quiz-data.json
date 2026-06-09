@@ -133,6 +133,32 @@
             "attempts": 5,
             "result": "review"
           }
+        },
+        {
+          "photo": null,
+          "text": "Tô de barba cacete.",
+          "alts": [
+            {
+              "text": "Palmeira",
+              "correct": false
+            },
+            {
+              "text": "Jorge",
+              "correct": false
+            },
+            {
+              "text": "Papai",
+              "correct": true
+            },
+            {
+              "text": "Juvenil",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 8,
+            "result": "review"
+          }
         }
       ]
     }
