@@ -287,8 +287,8 @@
           "text": "E muito velho. Quem são ?",
           "alts": [
             {
-              "text": "As primas",
-              "correct": true
+              "text": "Amigos",
+              "correct": false
             },
             {
               "text": "O digo",
@@ -300,7 +300,7 @@
             },
             {
               "text": "A minha família",
-              "correct": false
+              "correct": true
             }
           ],
           "cfg": {
