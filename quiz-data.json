@@ -196,7 +196,7 @@
           "alts": [
             {
               "text": "Andrezinho",
-              "correct": true
+              "correct": false
             },
             {
               "text": "Ian",
@@ -204,7 +204,7 @@
             },
             {
               "text": "João Felipe",
-              "correct": false
+              "correct": true
             },
             {
               "text": "Juquinha",
