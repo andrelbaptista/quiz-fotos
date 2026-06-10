@@ -378,7 +378,7 @@
             }
           ],
           "cfg": {
-            "attempts": 0,
+            "attempts": 3,
             "result": "score"
           }
         },
