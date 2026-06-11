@@ -173,6 +173,16 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 @keyframes burst{0%{transform:scale(0.3);opacity:1;}60%{transform:scale(1.2);opacity:1;}100%{transform:scale(1);opacity:0;}}
 #emoji-burst.animate{animation:burst 0.7s ease-out forwards;}
 .crop-handle{position:absolute;width:22px;height:22px;background:#fff;border:2px solid #0071e3;border-radius:3px;}
+/* MESSAGE BAR */
+#msg-bar{position:fixed;top:0;left:0;right:0;z-index:600;padding:12px 16px;font-size:14px;font-weight:600;display:none;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,0.3);}
+#msg-bar.error{background:#d93025;color:#fff;animation:blink-bar 0.6s ease-in-out 3;}
+#msg-bar.info{background:var(--blue);color:#fff;}
+#msg-bar.success{background:var(--green);color:#fff;}
+#msg-bar.warning{background:#b45309;color:#fff;animation:blink-bar 0.6s ease-in-out 2;}
+@keyframes blink-bar{0%,100%{opacity:1;}50%{opacity:0.4;}}
+#msg-bar-text{flex:1;line-height:1.4;}
+#msg-bar-close{background:rgba(255,255,255,0.25);border:none;color:#fff;font-size:18px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
 /* QUESTION TYPES */
 .clock-wrap{display:flex;justify-content:center;margin-bottom:16px;}
 svg.clock-face{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));}
@@ -316,6 +326,10 @@ svg.hist-chart{display:block;max-width:100%;}
 </style>
 </head>
 <body>
+<div id="msg-bar">
+  <span id="msg-bar-text"></span>
+  <button id="msg-bar-close" onclick="closeMsg()">✕</button>
+</div>
 <div id="toast"></div>
 <div id="modal-container"></div>
 <div id="emoji-burst"></div>
@@ -388,7 +402,7 @@ svg.hist-chart{display:block;max-width:100%;}
       <div class="card">
         <div class="field">
           <label>Tipo de questão</label>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
             <button class="btn btn-xs" id="qtype-photo" onclick="setQType('photo')">📷 Foto</button>
             <button class="btn btn-xs" id="qtype-clock" onclick="setQType('clock')">🕐 Relógio</button>
             <button class="btn btn-xs" id="qtype-period" onclick="setQType('period')">🌅 Período</button>
@@ -396,6 +410,7 @@ svg.hist-chart{display:block;max-width:100%;}
             <button class="btn btn-xs" id="qtype-money" onclick="setQType('money')">💰 Dinheiro</button>
             <button class="btn btn-xs" id="qtype-puzzle" onclick="setQType('puzzle')">🧩 Quebra-cabeça</button>
           </div>
+          <div id="qtype-info-bar" style="display:none;font-size:12px;padding:8px 12px;border-radius:var(--radius-xs);margin-bottom:10px;"></div>
           <label id="photo-label">Foto da questão</label>
           <div id="photo-upload-area">
             <div class="row" style="margin-bottom:8px;flex-wrap:wrap;">
@@ -727,6 +742,33 @@ svg.hist-chart{display:block;max-width:100%;}
 var LETTERS=['A','B','C','D','E','F','G','H'];
 var toastTimer=null;
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+var msgTimer=null;
+function showMsg(msg, type, duration){
+  var bar=document.getElementById('msg-bar');
+  var txt=document.getElementById('msg-bar-text');
+  if(!bar||!txt)return;
+  txt.textContent=msg;
+  bar.className=type||'error';
+  bar.style.display='flex';
+  // Restart animation
+  bar.style.animation='none';
+  bar.offsetHeight; // reflow
+  bar.style.animation='';
+  clearTimeout(msgTimer);
+  if(duration!==0){
+    msgTimer=setTimeout(function(){closeMsg();},duration||5000);
+  }
+}
+function closeMsg(){
+  var bar=document.getElementById('msg-bar');
+  if(bar)bar.style.display='none';
+  clearTimeout(msgTimer);
+}
+function showError(msg){showMsg('❌ '+msg,'error',6000);}
+function showInfo(msg){showMsg('ℹ️ '+msg,'info',4000);}
+function showSuccess(msg){showMsg('✅ '+msg,'success',3000);}
+function showWarning(msg){showMsg('⚠️ '+msg,'warning',5000);}
+
 function toast(msg,dur){var el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},dur||2400);}
 function showModal(html){document.getElementById('modal-container').innerHTML='<div class="modal-overlay" id="mov"><div class="modal">'+html+'</div></div>';document.getElementById('mov').addEventListener('click',function(e){if(e.target===this)closeModal();});}
 function closeModal(){document.getElementById('modal-container').innerHTML='';}
@@ -986,11 +1028,11 @@ function syncToGitHub(){
     .then(function(data){
       ghSha=data.content.sha;isDirty=false;
       setSyncBar('synced','✅ Salvo no GitHub — todos os dispositivos sincronizados');
-      toast('✅ Salvo no GitHub!');
+      toast('✅ Salvo no GitHub!');showSuccess('Dados salvos no GitHub! Todos os dispositivos sincronizados.');
       renderQuizList();
     })
     .catch(function(e){
-      setSyncBar('error','❌ Erro: '+e.message);
+      setSyncBar('error','❌ Erro: '+e.message);showError('Erro ao salvar no GitHub: '+e.message+'. Verifique o token em Admin → GitHub.');
       toast('❌ Erro GitHub: '+e.message,4000);
     });
 }
@@ -1159,7 +1201,7 @@ function previewGoalImg(input){
 }
 function createQuiz(){
   var name=document.getElementById('new-quiz-name').value.trim();
-  if(!name){toast('Digite um nome para o quiz.');return;}
+  if(!name){showError('Digite um nome para o quiz antes de criar.');return;}
   var accessAll=document.getElementById('quiz-access-all').checked;
   var accessUsers=[];
   if(!accessAll){
@@ -1196,7 +1238,7 @@ function editQuizMeta(id){
 function saveQuizMeta(id){
   var quiz=getQuiz(id);if(!quiz)return;
   var name=document.getElementById('edit-quiz-name').value.trim();
-  if(!name){toast('Digite um nome.');return;}
+  if(!name){showError('Digite um nome para o quiz.');return;}
   quiz.name=name;
   quiz.accessAll=document.getElementById('quiz-access-all').checked;
   quiz.accessUsers=[];
@@ -1233,8 +1275,14 @@ function renderQuestionList(){
   empty.style.display='none';
   quiz.questions.forEach(function(q,i){
     var ci=q.alts.findIndex(function(a){return a.correct;});
-    var lbl=q.text?q.text.substring(0,54)+(q.text.length>54?'…':''):'Questão '+(i+1)+' (foto)';
-    var th=q.photo?'<img class="q-thumb" src="'+q.photo+'" alt="">':'<div class="q-thumb" style="display:flex;align-items:center;justify-content:center;">📷</div>';
+    var typeNames={photo:'foto',clock:'relógio',period:'período',number:'número',money:'dinheiro',puzzle:'quebra-cabeça'};
+    var lbl=q.text?q.text.substring(0,54)+(q.text.length>54?'…':''):'Questão '+(i+1)+' ('+( typeNames[qtype]||'foto')+')';
+    var typeIcons={photo:'📷',clock:'🕐',period:'🌅',number:'🔢',money:'💰',puzzle:'🧩'};
+    var qtype=q.qtype||'photo';
+    var typeIcon=typeIcons[qtype]||'📷';
+    var th=q.photo&&(qtype==='photo'||qtype==='puzzle')?
+      '<img class="q-thumb" src="'+q.photo+'" alt="">':
+      '<div class="q-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">'+typeIcon+'</div>';
     var up=i>0?'<button class="btn btn-xs btn-ghost" onclick="moveQ('+i+',-1)">↑</button>':'';
     var dn=i<quiz.questions.length-1?'<button class="btn btn-xs btn-ghost" onclick="moveQ('+i+',1)">↓</button>':'';
     var d=document.createElement('div');d.className='q-item';
@@ -1250,7 +1298,49 @@ function deleteQ(i){var quiz=getQuiz(activeQuizId);if(!quiz)return;quiz.question
 /* ── ADD / EDIT QUESTION ── */
 var editingQIdx=null,currentAlts=[],currentPhotoData=null;
 function goAddQuestion(){if(!activeQuizId)return;editingQIdx=null;resetAddForm();showScreen('add');}
-function editQuestion(i){editingQIdx=i;var q=getQuiz(activeQuizId).questions[i];currentPhotoData=q.photo||null;currentAlts=q.alts.map(function(a){return{text:a.text,correct:a.correct};});document.getElementById('q-text').value=q.text||'';document.getElementById('cfg-attempts').value=(q.cfg&&q.cfg.attempts!==undefined)?q.cfg.attempts:0;document.getElementById('cfg-result').value=(q.cfg&&q.cfg.result)?q.cfg.result:'score';var prev=document.getElementById('photo-preview'),rmw=document.getElementById('photo-remove-wrap');if(currentPhotoData){prev.src=currentPhotoData;prev.style.display='block';rmw.style.display='flex';}else{prev.style.display='none';rmw.style.display='none';}renderAlts();showScreen('add');}
+function editQuestion(i){
+  editingQIdx=i;
+  var q=getQuiz(activeQuizId).questions[i];
+  currentPhotoData=q.photo||null;
+  currentAlts=q.alts?q.alts.map(function(a){return{text:a.text,correct:a.correct};}):[];
+  document.getElementById('q-text').value=q.text||'';
+  document.getElementById('cfg-attempts').value=(q.cfg&&q.cfg.attempts!==undefined)?q.cfg.attempts:0;
+  document.getElementById('cfg-result').value=(q.cfg&&q.cfg.result)?q.cfg.result:'score';
+  if(document.getElementById('cfg-voice-read'))document.getElementById('cfg-voice-read').checked=!!(q.cfg&&q.cfg.voiceRead);
+  if(document.getElementById('cfg-voice-answer'))document.getElementById('cfg-voice-answer').checked=!!(q.cfg&&q.cfg.voiceAnswer);
+  // Show photo preview
+  var prev=document.getElementById('photo-preview'),rmw=document.getElementById('photo-remove-wrap');
+  if(currentPhotoData){prev.src=currentPhotoData;prev.style.display='block';rmw.style.display='flex';}
+  else{prev.style.display='none';rmw.style.display='none';}
+  showScreen('add');
+  // Set question type AFTER screen shown
+  var qtype=q.qtype||'photo';
+  setQType(qtype);
+  // Restore type-specific config
+  setTimeout(function(){
+    if(qtype==='clock'){
+      if(document.getElementById('clock-hour'))document.getElementById('clock-hour').value=q.clockHour||10;
+      if(document.getElementById('clock-minute'))document.getElementById('clock-minute').value=q.clockMinute||0;
+      if(document.getElementById('clock-mode'))document.getElementById('clock-mode').value=q.clockMode||'analog';
+      updateClockPreview();
+    } else if(qtype==='period'){
+      if(document.getElementById('period-correct'))document.getElementById('period-correct').value=q.correctPeriod||'manha';
+    } else if(qtype==='number'){
+      if(document.getElementById('num1-val'))document.getElementById('num1-val').value=q.num1||1;
+      if(document.getElementById('num2-val'))document.getElementById('num2-val').value=q.num2||3;
+    } else if(qtype==='money'){
+      if(document.getElementById('money-value'))document.getElementById('money-value').value=q.moneyValue||10;
+    } else if(qtype==='puzzle'){
+      if(document.getElementById('puzzle-cols'))document.getElementById('puzzle-cols').value=q.puzzleCols||3;
+      if(document.getElementById('puzzle-rows'))document.getElementById('puzzle-rows').value=q.puzzleRows||3;
+      if(document.getElementById('puzzle-missing'))document.getElementById('puzzle-missing').value=q.puzzleMissing||3;
+    }
+    if(qtype==='photo'||qtype==='clock'||qtype==='money'){
+      if(currentAlts.length===0){addAlt();addAlt();}
+      else renderAlts();
+    }
+  },100);
+}
 function cancelEditQuestion(){editingQIdx=null;currentPhotoData=null;currentAlts=[];resetAddForm();openQuizDetail(activeQuizId);}
 function discardQuestion(){
   editingQIdx=null;currentPhotoData=null;currentAlts=[];
@@ -1263,7 +1353,7 @@ function finalizeQuiz(){
   var quiz=getQuiz(activeQuizId);
   if(!quiz){goHome();return;}
   if(!quiz.questions||!quiz.questions.length){
-    showModal('<h2>Nenhuma questão salva</h2><p>Salve pelo menos uma questão com <strong>✓ Salvar questão</strong> antes de finalizar o quiz.</p><div class="row"><button class="btn btn-primary btn-sm" onclick="closeModal()">Entendi</button></div>');
+    showModal('<h2>Quiz vazio</h2><p>Salve pelo menos uma questão com <strong>✓ Salvar questão</strong> antes de finalizar.</p><div class="row"><button class="btn btn-primary btn-sm" onclick="closeModal()">OK</button></div>');
     return;
   }
   isDirty=true;saveLS();
@@ -1283,12 +1373,48 @@ function doCancelQuizCreation(){
 var currentQType='photo';
 
 function setQType(type){
+  // If editing, cannot change type
+  if(editingQIdx!==null&&currentQType&&currentQType!==type){
+    var bar=document.getElementById('qtype-info-bar');
+    if(bar){
+      bar.textContent='⚠️ Não é possível mudar o tipo ao editar. Para mudar, descarte esta questão e crie uma nova.';
+      bar.style.display='block';
+      bar.style.background='var(--amber-bg)';
+      bar.style.color='var(--amber-text)';
+      bar.style.border='0.5px solid var(--amber-text)';
+    }
+    return;
+  }
   currentQType=type;
   // Update button styles
+  var typeNames2={photo:'Foto',clock:'Relógio',period:'Período',number:'Número',money:'Dinheiro',puzzle:'Quebra-cabeça'};
   ['photo','clock','period','number','money','puzzle'].forEach(function(t){
     var btn=document.getElementById('qtype-'+t);
-    if(btn){btn.style.background=t===type?'var(--blue)':'';btn.style.color=t===type?'#fff':'';btn.style.borderColor=t===type?'var(--blue)':'';}
+    if(!btn)return;
+    var isSelected=t===type;
+    var isDisabled=editingQIdx!==null&&t!==type;
+    btn.style.background=isSelected?'var(--blue)':'';
+    btn.style.color=isSelected?'#fff':'';
+    btn.style.borderColor=isSelected?'var(--blue)':'';
+    btn.style.opacity=isDisabled?'0.35':'1';
+    btn.style.cursor=isDisabled?'not-allowed':'pointer';
+    btn.disabled=isDisabled;
   });
+  // Show/hide info bar
+  var bar=document.getElementById('qtype-info-bar');
+  if(bar){
+    if(editingQIdx!==null){
+      bar.textContent='✏️ Editando: '+( typeNames2[type]||type)+' — tipo bloqueado. Para mudar, descarte e crie nova questão.';
+      bar.style.display='block';
+      bar.style.background='var(--blue-bg)';
+      bar.style.color='var(--blue-text)';
+      bar.style.border='0.5px solid var(--blue-border)';
+      showInfo('Editando questão do tipo '+(typeNames2[type]||type)+'. O tipo não pode ser alterado — para mudar, descarte e crie uma nova questão.');
+    } else {
+      bar.style.display='none';
+      closeMsg();
+    }
+  }
   // Show/hide areas
   var photoArea=document.getElementById('photo-upload-area');
   var photoLabel=document.getElementById('photo-label');
@@ -1488,6 +1614,13 @@ function resetAddForm(){
   if(document.getElementById('cfg-voice-read'))document.getElementById('cfg-voice-read').checked=false;
   if(document.getElementById('cfg-voice-answer'))document.getElementById('cfg-voice-answer').checked=false;
   currentPhotoData=null;currentAlts=[];
+  // Re-enable all type buttons for new question
+  ['photo','clock','period','number','money','puzzle'].forEach(function(t){
+    var btn=document.getElementById('qtype-'+t);
+    if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';}
+  });
+  var bar=document.getElementById('qtype-info-bar');
+  if(bar)bar.style.display='none';
   setQType('photo');
   addAlt();addAlt();
 }
@@ -1504,10 +1637,10 @@ function saveQuestion(){
   // Validation depends on type
   if(qtype==='photo'||qtype==='clock'||qtype==='money'){
     var texts=currentAlts.map(function(a){return a.text.trim();});
-    if(texts.some(function(t){return !t;})){toast('Preencha todas as alternativas ou remova as vazias.');return;}
-    if(!currentAlts.some(function(a){return a.correct;})){toast('Marque a alternativa correta.');return;}
+    if(texts.some(function(t){return !t;})){showError('Preencha todas as alternativas ou remova as vazias antes de salvar.');return;}
+    if(!currentAlts.some(function(a){return a.correct;})){showError('Marque qual alternativa é a correta antes de salvar.');return;}
   }
-  if((qtype==='puzzle')&&!currentPhotoData){toast('Adicione uma foto para o quebra-cabeça.');return;}
+  if((qtype==='puzzle')&&!currentPhotoData){showError('Adicione uma foto para o quebra-cabeça antes de salvar.');return;}
   var quiz=getQuiz(activeQuizId);if(!quiz)return;
   var voiceRead=document.getElementById('cfg-voice-read')&&document.getElementById('cfg-voice-read').checked;
   var voiceAnswer=document.getElementById('cfg-voice-answer')&&document.getElementById('cfg-voice-answer').checked;
@@ -1527,7 +1660,7 @@ function saveQuestion(){
   if(editingQIdx!==null){
     quiz.questions[editingQIdx]=q;
     editingQIdx=null;currentPhotoData=null;currentAlts=[];isDirty=true;saveLS();resetAddForm();openQuizDetail(activeQuizId);
-    toast('Questão atualizada! Salvando no GitHub...');
+    showSuccess('Questão atualizada! Salvando no GitHub...');
     setTimeout(function(){syncToGitHub();},500);
   } else {
     quiz.questions.push(q);isDirty=true;saveLS();
