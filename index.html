@@ -1769,6 +1769,9 @@ function initJourney(total, quiz){
   // Position character at start
   var char=document.getElementById('journey-char');
   if(char)char.style.left='4%';
+  // Keep journey hidden until first answer
+  var journeyWrap=document.getElementById('journey-wrap');
+  if(journeyWrap)journeyWrap.style.display='none';
   updateJourney(false);
   setCharState('idle');
 }
@@ -1825,10 +1828,22 @@ function setCharState(state){
 
 function journeyCorrectAnswer(){
   journeyCorrect++;
-  updateJourney(true);
+  showJourneyAnimation(true);
+}
+
+function showJourneyAnimation(isCorrect){
+  var journeyWrap=document.getElementById('journey-wrap');
+  if(!journeyWrap)return;
+  journeyWrap.style.display='block';
+  updateJourney(isCorrect);
+  // Hide journey after 2.5 seconds and move to next
+  setTimeout(function(){
+    // journey stays visible until next question click
+  },200);
 }
 
 function journeyWrongAnswer(){
+  showJourneyAnimation(false);
   setCharState('slip');
 }
 
@@ -1887,40 +1902,54 @@ function renderQuizQ(){
   document.getElementById('progress-fill').style.width=(currentQIdx/total*100)+'%';
   var badge=document.getElementById('attempts-badge');
   if(quizCfg.attempts>0){badge.style.display='inline-flex';updateAttemptsBadge();}else{badge.style.display='none';}
-  var img=document.getElementById('quiz-img');
+
+  // Hide journey during question - only show after answer
+  var journeyWrap=document.getElementById('journey-wrap');
+  if(journeyWrap)journeyWrap.style.display='none';
+
   var qtype=q.qtype||'photo';
-  if(qtype==='photo'&&q.photo){img.src=q.photo;img.style.display='block';}
-  else{img.style.display='none';}
+
+  // Show photo for photo, puzzle, clock (background) types
+  var img=document.getElementById('quiz-img');
+  if(q.photo&&(qtype==='photo'||qtype==='puzzle')){
+    img.src=q.photo;img.style.display='block';
+  } else {
+    img.style.display='none';
+  }
+
+  // Question text
   var textEl=document.getElementById('quiz-text');
   var titleBox=document.getElementById('quiz-title-box');
   if(q.text){
     titleBox.style.display='block';
     window._currentSpeakText=q.text;
-    textEl.innerHTML=esc(q.text)+' <button class="speak-btn" onclick="speak(window._currentSpeakText)" title="Ouvir pergunta">🔊 Ouvir</button>';
-  } else {titleBox.style.display='none';}
+    textEl.innerHTML=esc(q.text)+
+      ' <button class="speak-btn" onclick="speak(window._currentSpeakText)" title="Ouvir">🔊</button>';
+  } else {
+    titleBox.style.display='none';
+  }
+
+  // Render question by type
   if(qtype==='clock'){renderClockQuestion(q);}
   else if(qtype==='period'){renderPeriodQuestion(q);}
   else if(qtype==='number'){renderNumberQuestion(q);}
   else if(qtype==='money'){renderMoneyQuestion(q);}
   else if(qtype==='puzzle'){renderPuzzleQuestion(q);}
   else{renderQuizAlts(false);}
+
   // Voice answer button
   var ae=document.getElementById('quiz-alts');
   if(q.cfg&&q.cfg.voiceAnswer&&ae){
     var vbtn=document.createElement('button');
-    vbtn.id='voice-answer-btn';
-    vbtn.className='voice-btn';
+    vbtn.id='voice-answer-btn';vbtn.className='voice-btn';
     vbtn.innerHTML='🎤 Falar resposta';
     vbtn.onclick=function(){startListening(function(text){handleVoiceAnswer(text,q);});};
     ae.appendChild(vbtn);
   }
+
   renderQuizNav(false);
   document.querySelector('.scroll-area').scrollTop=0;
-  // Auto-speak if configured
   if(q.cfg&&q.cfg.voiceRead&&q.text){setTimeout(function(){speak(q.text);},400);}
-  else if(q.text){
-    // Just show speak button, don't auto-speak
-  }
 }
 
 function updateAttemptsBadge(){var rem=getQCfg(quizOrder[currentQIdx]).attempts-currentAttempts;document.getElementById('attempts-badge').textContent=rem+' tentativa'+(rem!==1?'s':'');}
