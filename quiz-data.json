@@ -476,6 +476,11 @@
       "username": "admin",
       "role": "admin",
       "hash": "6bb55f0e8dc7e5c8f49f41eab0e81e4038a68ec5110fef843376c5a8fa6c73f8"
+    },
+    {
+      "username": "jack",
+      "role": "player",
+      "hash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
     }
   ]
 }
