@@ -203,15 +203,21 @@ svg.clock-face{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));}
 .journey-path-dots{position:absolute;bottom:32px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;}
 .journey-dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:0.6;}
 .journey-dot.reached{background:#FFD700;opacity:1;box-shadow:0 0 6px #FFD700;}
-.journey-character{position:absolute;bottom:36px;font-size:32px;transition:left 0.8s cubic-bezier(0.34,1.56,0.64,1);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
-.journey-character.walking{animation:walk 0.4s steps(2) infinite;}
-.journey-character.idle{animation:idle-bounce 1s ease-in-out infinite;}
+.journey-character{position:absolute;bottom:36px;font-size:32px;transition:left 0.8s cubic-bezier(0.34,1.56,0.64,1);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));transform:scaleX(-1);}
+.journey-character.walking{animation:walk 0.5s ease-in-out infinite;}
+.journey-character.idle{animation:idle-bounce 1.2s ease-in-out infinite;}
 .journey-character.slip{animation:slip 0.8s ease-in-out forwards;}
-.journey-character.celebrate{animation:celebrate 0.6s ease-in-out infinite;}
-@keyframes walk{0%{transform:scaleX(1) translateY(0);}50%{transform:scaleX(1) translateY(-3px);}100%{transform:scaleX(1) translateY(0);}}
-@keyframes idle-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
-@keyframes slip{0%{transform:rotate(0deg) translateY(0);}25%{transform:rotate(30deg) translateY(8px);}50%{transform:rotate(-10deg) translateY(-6px);}75%{transform:rotate(5deg) translateY(-2px);}100%{transform:rotate(0deg) translateY(0);}}
-@keyframes celebrate{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-12px) scale(1.2);}}
+.journey-character.celebrate{animation:celebrate 0.5s ease-in-out infinite;}
+@keyframes walk{0%,100%{transform:scaleX(-1) translateY(0);}50%{transform:scaleX(-1) translateY(-5px);}}
+@keyframes idle-bounce{0%,100%{transform:scaleX(-1) translateY(0);}50%{transform:scaleX(-1) translateY(-4px);}}
+@keyframes slip{0%{transform:scaleX(-1) rotate(0deg);}25%{transform:scaleX(-1) rotate(-30deg) translateY(8px);}50%{transform:scaleX(-1) rotate(10deg) translateY(-4px);}75%{transform:scaleX(-1) rotate(-5deg);}100%{transform:scaleX(-1) rotate(0deg);}}
+@keyframes celebrate{0%,100%{transform:scaleX(-1) translateY(0) scale(1);}50%{transform:scaleX(-1) translateY(-14px) scale(1.25);}}
+.journey-waypoint{position:absolute;bottom:28px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;}
+.journey-wp-dot{width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #888;transition:all 0.4s;}
+.journey-wp-dot.reached{background:#FFD700;border-color:#FFA500;box-shadow:0 0 8px #FFD700;}
+.journey-wp-dot.current{background:#0071e3;border-color:#0051a2;box-shadow:0 0 8px #0071e3;}
+.journey-wp-num{font-size:9px;font-weight:800;color:#555;margin-top:2px;background:rgba(255,255,255,0.8);border-radius:4px;padding:0 3px;}
+.journey-start-flag{position:absolute;bottom:44px;left:2%;font-size:20px;}
 .journey-flowers{position:absolute;bottom:44px;display:flex;gap:0;pointer-events:none;}
 .journey-flower{font-size:18px;animation:flower-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;transform:scale(0);}
 @keyframes flower-pop{to{transform:scale(1);}}
@@ -576,7 +582,8 @@ svg.hist-chart{display:block;max-width:100%;}
         </div>
         <span class="journey-sun">☀️</span>
         <div class="journey-path"></div>
-        <div class="journey-dots" id="journey-dots"></div>
+        <span class="journey-start-flag">🚩</span>
+        <div id="journey-waypoints" style="position:absolute;bottom:0;left:0;right:0;height:100%;pointer-events:none;"></div>
         <div class="journey-flowers" id="journey-flowers" style="bottom:44px;left:20px;position:absolute;"></div>
         <div class="journey-character idle" id="journey-char" style="left:4%;">🚶</div>
         <div class="journey-goal" id="journey-goal">🏆</div>
@@ -1695,44 +1702,75 @@ function initJourney(total, quiz){
   journeyGoalEmoji=quiz&&quiz.goalEmoji?quiz.goalEmoji:'🏆';
   // Set goal
   var goal=document.getElementById('journey-goal');
-  if(journeyGoalImg){
-    goal.outerHTML='<img class="journey-goal-img" id="journey-goal" src="'+journeyGoalImg+'" alt="meta">';
-  } else {
-    if(goal.tagName==='IMG'){
-      goal.outerHTML='<div class="journey-goal" id="journey-goal">'+journeyGoalEmoji+'</div>';
+  if(goal){
+    if(journeyGoalImg){
+      var img=document.createElement('img');
+      img.className='journey-goal-img';img.id='journey-goal';img.src=journeyGoalImg;img.alt='meta';
+      goal.parentNode.replaceChild(img,goal);
     } else {
-      goal.textContent=journeyGoalEmoji;
+      if(goal.tagName==='IMG'){
+        var div=document.createElement('div');div.className='journey-goal';div.id='journey-goal';div.textContent=journeyGoalEmoji;
+        goal.parentNode.replaceChild(div,goal);
+      } else {goal.textContent=journeyGoalEmoji;}
     }
   }
   // Clear flowers
-  document.getElementById('journey-flowers').innerHTML='';
-  // Set progress
+  var fl=document.getElementById('journey-flowers');if(fl)fl.innerHTML='';
+  // Build waypoints
+  var wp=document.getElementById('journey-waypoints');
+  if(wp){
+    wp.innerHTML='';
+    var minLeft=12, maxLeft=82;
+    for(var i=0;i<total;i++){
+      var pct=minLeft+(i/(total-1||1))*(maxLeft-minLeft);
+      var dot=document.createElement('div');
+      dot.className='journey-waypoint';
+      dot.id='journey-wp-'+i;
+      dot.style.left=pct+'%';
+      dot.innerHTML='<div class="journey-wp-dot" id="journey-wpdot-'+i+'"></div>'+
+        '<div class="journey-wp-num">'+(i+1)+'</div>';
+      wp.appendChild(dot);
+    }
+  }
+  // Mark first as current
+  var first=document.getElementById('journey-wpdot-0');
+  if(first)first.className='journey-wp-dot current';
+  // Position character at start
+  var char=document.getElementById('journey-char');
+  if(char)char.style.left='4%';
   updateJourney(false);
-  // Start idle
   setCharState('idle');
 }
 
 function updateJourney(isCorrect){
-  var pct=journeyTotal>0?(journeyCorrect/journeyTotal):0;
   var minLeft=4, maxLeft=78;
-  var left=minLeft+pct*(maxLeft-minLeft);
+  var wpMinLeft=12, wpMaxLeft=82;
+  // Character position based on correct answers
+  var charPct=journeyTotal>0?(journeyCorrect/journeyTotal):0;
+  var left=minLeft+charPct*(maxLeft-minLeft);
   var char=document.getElementById('journey-char');
   if(char){
     char.style.left=left+'%';
-    setCharState('walking');
-    setTimeout(function(){setCharState('idle');},900);
+    if(isCorrect){setCharState('walking');setTimeout(function(){setCharState('idle');},900);}
   }
-  // Add flower at position
+  // Update waypoint dots
+  for(var i=0;i<journeyTotal;i++){
+    var dot=document.getElementById('journey-wpdot-'+i);
+    if(!dot)continue;
+    if(i<journeyCorrect){dot.className='journey-wp-dot reached';}
+    else if(i===journeyCorrect&&journeyCorrect<journeyTotal){dot.className='journey-wp-dot current';}
+    else{dot.className='journey-wp-dot';}
+  }
+  // Add flower at previous correct position
   if(isCorrect&&journeyCorrect>0){
     var flowersEl=document.getElementById('journey-flowers');
     var wrap=document.getElementById('journey-wrap');
     if(flowersEl&&wrap){
+      var prevPct=(journeyCorrect-1)/(journeyTotal-1||1);
       var wrapW=wrap.offsetWidth||300;
-      var flowerX=Math.round((minLeft/100+(pct-1/journeyTotal)*(maxLeft-minLeft)/100)*wrapW);
+      var flowerX=Math.round((wpMinLeft/100+prevPct*(wpMaxLeft-wpMinLeft)/100)*wrapW);
       var span=document.createElement('span');
-      span.className='journey-flower';
-      span.style.position='absolute';
-      span.style.left=flowerX+'px';
+      span.className='journey-flower';span.style.position='absolute';span.style.left=flowerX+'px';
       span.textContent=flowers[(journeyCorrect-1)%flowers.length];
       flowersEl.appendChild(span);
     }
