@@ -408,10 +408,17 @@ svg.hist-chart{display:block;max-width:100%;}
         <div class="field"><label>Enunciado (opcional)</label><textarea id="q-text" placeholder="Texto da questão..."></textarea></div>
         <!-- TYPE CONFIG AREAS -->
         <div id="config-clock" style="display:none;">
-          <div class="field"><label>Hora (0-23)</label><input type="number" id="clock-hour" min="0" max="23" value="10"></div>
-          <div class="field"><label>Minutos (0-59)</label><input type="number" id="clock-minute" min="0" max="59" value="30"></div>
+          <div class="field"><label>Modo do relógio</label>
+            <select id="clock-mode" onchange="updateClockPreview()">
+              <option value="analog">🕐 Analógico — com ponteiros</option>
+              <option value="digital">💻 Digital — mostra 14:30</option>
+              <option value="period">🌅 Período — Manhã/Tarde/Noite</option>
+            </select>
+          </div>
+          <div class="field"><label>Hora (0-23)</label><input type="number" id="clock-hour" min="0" max="23" value="10" oninput="updateClockPreview()"></div>
+          <div id="clock-minute-wrap" class="field"><label>Minutos (0-59)</label><input type="number" id="clock-minute" min="0" max="59" value="30" oninput="updateClockPreview()"></div>
           <div id="clock-preview-wrap" style="display:flex;justify-content:center;margin-bottom:10px;"></div>
-          <p style="font-size:12px;color:var(--text2);">As alternativas abaixo serão os horários para escolher. A correta deve ser marcada.</p>
+          <p style="font-size:12px;color:var(--text2);" id="clock-help">As alternativas abaixo serão os horários para escolher.</p>
         </div>
         <div id="config-period" style="display:none;">
           <div class="field"><label>Período correto</label>
@@ -1266,9 +1273,26 @@ function setQType(type){
 
 function updateClockPreview(){
   var h=parseInt(document.getElementById('clock-hour').value)||10;
-  var m=parseInt(document.getElementById('clock-minute').value)||30;
+  var m=parseInt(document.getElementById('clock-minute').value)||0;
+  var mode=document.getElementById('clock-mode')?document.getElementById('clock-mode').value:'analog';
   var wrap=document.getElementById('clock-preview-wrap');
-  if(wrap)wrap.innerHTML=drawClock(h,m,160);
+  var help=document.getElementById('clock-help');
+  var minWrap=document.getElementById('clock-minute-wrap');
+  if(!wrap)return;
+  if(mode==='analog'){
+    wrap.innerHTML=drawClock(h,m,160);
+    if(help)help.textContent='As alternativas serão os horários para escolher. Marque o correto.';
+    if(minWrap)minWrap.style.display='block';
+  } else if(mode==='digital'){
+    wrap.innerHTML=drawDigitalClock(h,m);
+    if(help)help.textContent='As alternativas serão os horários para escolher. Marque o correto.';
+    if(minWrap)minWrap.style.display='block';
+  } else if(mode==='period'){
+    var pe=h<12?'🌅 Manhã':h<18?'☀️ Tarde':'🌙 Noite';
+    wrap.innerHTML=drawClock(h,0,160)+'<div style="text-align:center;font-size:16px;font-weight:700;margin-top:8px;">'+pe+'</div>';
+    if(help)help.textContent='Ela verá o relógio e escolherá: Manhã, Tarde ou Noite.';
+    if(minWrap)minWrap.style.display='none';
+  }
 }
 
 /* ── PUZZLE ── */
@@ -1457,7 +1481,7 @@ function saveQuestion(){
     cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value,voiceRead:voiceRead,voiceAnswer:voiceAnswer}
   };
   // Type-specific config
-  if(qtype==='clock'){q.clockHour=parseInt(document.getElementById('clock-hour').value)||10;q.clockMinute=parseInt(document.getElementById('clock-minute').value)||0;}
+  if(qtype==='clock'){q.clockHour=parseInt(document.getElementById('clock-hour').value)||10;q.clockMinute=parseInt(document.getElementById('clock-minute').value)||0;q.clockMode=document.getElementById('clock-mode')?document.getElementById('clock-mode').value:'analog';}
   if(qtype==='period'){q.correctPeriod=document.getElementById('period-correct').value||'manha';}
   if(qtype==='number'){q.num1=parseInt(document.getElementById('num1-val').value)||1;q.num2=parseInt(document.getElementById('num2-val').value)||3;}
   if(qtype==='money'){q.moneyValue=parseInt(document.getElementById('money-value').value)||10;}
@@ -1522,35 +1546,52 @@ function playError(){try{var ctx=getAudio();[200,180,160].forEach(function(freq,
 // Types: 'photo'(default), 'clock', 'period', 'number', 'money'
 
 function drawClock(hour, minute, size){
-  size=size||200;
-  var cx=size/2, cy=size/2, r=size/2-4;
-  // Angles
+  size=size||220;
+  var cx=size/2, cy=size/2, r=size/2-6;
   var hAngle=(hour%12+minute/60)/12*2*Math.PI - Math.PI/2;
   var mAngle=minute/60*2*Math.PI - Math.PI/2;
-  var hLen=r*0.55, mLen=r*0.8;
+  var hLen=r*0.52, mLen=r*0.75;
   var hx=cx+hLen*Math.cos(hAngle), hy=cy+hLen*Math.sin(hAngle);
   var mx=cx+mLen*Math.cos(mAngle), my=cy+mLen*Math.sin(mAngle);
-  // Hour marks
-  var marks='';
-  for(var i=0;i<12;i++){
-    var a=i/12*2*Math.PI;
-    var x1=cx+(r-4)*Math.cos(a), y1=cy+(r-4)*Math.sin(a);
-    var x2=cx+(r-12)*Math.cos(a), y2=cy+(r-12)*Math.sin(a);
-    marks+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#333" stroke-width="'+(i%3===0?3:1.5)+'" stroke-linecap="round"/>';
+  // All 12 numbers
+  var numsSvg='';
+  var fontSize=Math.round(size/10);
+  for(var i=1;i<=12;i++){
+    var a=(i/12)*2*Math.PI - Math.PI/2;
+    var nx=cx+(r-fontSize*1.1)*Math.cos(a);
+    var ny=cy+(r-fontSize*1.1)*Math.sin(a)+fontSize*0.35;
+    numsSvg+='<text x="'+nx+'" y="'+ny+'" text-anchor="middle" font-size="'+fontSize+'" font-weight="900" font-family="Arial,sans-serif" fill="#1a1a1a">'+i+'</text>';
   }
-  // Numbers 12,3,6,9
-  var nums=[{n:12,a:-Math.PI/2},{n:3,a:0},{n:6,a:Math.PI/2},{n:9,a:Math.PI}];
-  var numsSvg=nums.map(function(nm){
-    var nx=cx+(r-22)*Math.cos(nm.a), ny=cy+(r-22)*Math.sin(nm.a)+5;
-    return'<text x="'+nx+'" y="'+ny+'" text-anchor="middle" font-size="'+(size/12)+'" font-weight="bold" fill="#333">'+nm.n+'</text>';
-  }).join('');
-  return '<svg class="clock-face" viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" xmlns="http://www.w3.org/2000/svg">'+
-    '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="white" stroke="#ddd" stroke-width="3"/>'+
+  // Minute marks
+  var marks='';
+  for(var m=0;m<60;m++){
+    var ma=m/60*2*Math.PI;
+    var isHour=m%5===0;
+    var x1=cx+(r-2)*Math.cos(ma), y1=cy+(r-2)*Math.sin(ma);
+    var x2=cx+(r-(isHour?fontSize*1.9:8))*Math.cos(ma), y2=cy+(r-(isHour?fontSize*1.9:8))*Math.sin(ma);
+    if(isHour)marks+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#555" stroke-width="2.5" stroke-linecap="round"/>';
+    else marks+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#bbb" stroke-width="1" stroke-linecap="round"/>';
+  }
+  return'<svg class="clock-face" viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" xmlns="http://www.w3.org/2000/svg">'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="white" stroke="#ccc" stroke-width="4"/>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r-3)+'" fill="none" stroke="#eee" stroke-width="1"/>'+
     marks+numsSvg+
-    '<line x1="'+cx+'" y1="'+cy+'" x2="'+hx+'" y2="'+hy+'" stroke="#222" stroke-width="'+(size/30)+'" stroke-linecap="round"/>'+
-    '<line x1="'+cx+'" y1="'+cy+'" x2="'+mx+'" y2="'+my+'" stroke="#e00" stroke-width="'+(size/50)+'" stroke-linecap="round"/>'+
-    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size/25)+'" fill="#333"/>'+
+    '<line x1="'+cx+'" y1="'+cy+'" x2="'+hx+'" y2="'+hy+'" stroke="#1a1a1a" stroke-width="'+(size/22)+'" stroke-linecap="round"/>'+
+    '<line x1="'+cx+'" y1="'+cy+'" x2="'+mx+'" y2="'+my+'" stroke="#cc0000" stroke-width="'+(size/38)+'" stroke-linecap="round"/>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size/18)+'" fill="#1a1a1a"/>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size/30)+'" fill="#cc0000"/>'+
     '</svg>';
+}
+
+function drawDigitalClock(hour, minute){
+  var h=String(hour).padStart(2,'0');
+  var m=String(minute).padStart(2,'0');
+  var period=hour<12?'manhã':hour<18?'tarde':'noite';
+  var periodEmoji=hour<12?'🌅':hour<18?'☀️':'🌙';
+  return'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#1a1a2e;border-radius:16px;margin:0 auto;max-width:280px;">'+
+    '<div style="font-size:72px;font-weight:900;color:#00d4ff;font-family:monospace;letter-spacing:8px;text-shadow:0 0 20px #00d4ff88;">'+h+':'+m+'</div>'+
+    '<div style="font-size:20px;color:#fff;margin-top:8px;">'+periodEmoji+' '+period.charAt(0).toUpperCase()+period.slice(1)+'</div>'+
+  '</div>';
 }
 
 function drawMoneyNote(value){
@@ -1816,9 +1857,25 @@ function renderQuizQ(){
 function updateAttemptsBadge(){var rem=getQCfg(quizOrder[currentQIdx]).attempts-currentAttempts;document.getElementById('attempts-badge').textContent=rem+' tentativa'+(rem!==1?'s':'');}
 function renderClockQuestion(q){
   var ae=document.getElementById('quiz-alts');
-  ae.innerHTML='<div class="clock-wrap">'+drawClock(q.clockHour||12,q.clockMinute||0,Math.min(220,window.innerWidth*0.55))+'</div>';
-  // Show alt buttons as time options
-  renderQuizAlts(false);
+  var mode=q.clockMode||'analog';
+  var size=Math.min(240,window.innerWidth*0.6);
+  var clockHtml='';
+  if(mode==='analog'){
+    clockHtml='<div class="clock-wrap">'+drawClock(q.clockHour||12,q.clockMinute||0,size)+'</div>';
+  } else if(mode==='digital'){
+    clockHtml='<div style="display:flex;justify-content:center;margin-bottom:16px;">'+drawDigitalClock(q.clockHour||12,q.clockMinute||0)+'</div>';
+  } else if(mode==='period'){
+    // Show time and ask what period it is
+    var h=q.clockHour||10;
+    var periodLabel=h<12?'Manhã':h<18?'Tarde':'Noite';
+    clockHtml='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawClock(h,0,size)+'</div>';
+  }
+  ae.innerHTML=clockHtml;
+  if(mode==='period'){
+    renderPeriodQuestion({correctPeriod:(q.clockHour<12?'manha':q.clockHour<18?'tarde':'noite'),_chosen:q._chosen});
+  } else {
+    renderQuizAlts(false);
+  }
 }
 
 function renderPeriodQuestion(q){
