@@ -412,7 +412,32 @@
       "createdBy": "master",
       "accessAll": true,
       "accessUsers": [],
-      "questions": [],
+      "questions": [
+        {
+          "qtype": "clock",
+          "photo": null,
+          "text": "xxxxxxxxxxx",
+          "alts": [
+            {
+              "text": "yyyyyyyyyyyyyyyy",
+              "correct": true
+            },
+            {
+              "text": "xxxxxxxxxx",
+              "correct": false
+            }
+          ],
+          "cfg": {
+            "attempts": 2,
+            "result": "review",
+            "voiceRead": false,
+            "voiceAnswer": false
+          },
+          "clockHour": 10,
+          "clockMinute": 0,
+          "clockMode": "analog"
+        }
+      ],
       "goalEmoji": "🏆",
       "goalImg": null
     }
