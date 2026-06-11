@@ -853,7 +853,7 @@ function loadLS(){try{var d=localStorage.getItem('quiz_v5');if(d){var p=JSON.par
   if(old){var qs=JSON.parse(old);if(Array.isArray(qs)&&qs.length){quizzes=[{id:Date.now()+'',name:'Quiz importado',createdBy:'admin',accessAll:true,accessUsers:[],questions:qs}];saveLS();}}}catch(e){quizzes=[];}}
 
 /* ── GITHUB ── */
-function getCfg(){try{return JSON.parse(localStorage.getItem('quiz_cfg')||'{}');}catch(e){return{};}}
+// getCfg defined below
 function hasCfg(){var c=getCfg();return!!(c.user&&c.repo&&c.file&&c.token);}
 function ghH(){var c=getCfg();return{'Authorization':'token '+c.token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};}
 function ghUrl(){var c=getCfg();return'https://api.github.com/repos/'+c.user+'/'+c.repo+'/contents/'+c.file;}
@@ -865,19 +865,35 @@ function saveGHConfig(){
     token:document.getElementById('cfg-token').value.trim()
   };
   if(!c.user||!c.repo||!c.token){toast('Preencha os campos.');return;}
-  localStorage.removeItem('quiz_cfg'); // clear old first
-  localStorage.setItem('quiz_cfg',JSON.stringify(c));
-  toast('GitHub configurado!');
+  var json=JSON.stringify(c);
+  localStorage.setItem('quiz_cfg',json);
+  // Backup in sessionStorage too
+  try{sessionStorage.setItem('quiz_cfg_bak',json);}catch(e){}
+  toast('✅ GitHub configurado e salvo!');
   loadFromGitHub();
+}
+
+function getCfg(){
+  try{
+    var s=localStorage.getItem('quiz_cfg');
+    if(!s){
+      // Try to restore from sessionStorage backup
+      var bak=sessionStorage.getItem('quiz_cfg_bak');
+      if(bak){localStorage.setItem('quiz_cfg',bak);s=bak;}
+    }
+    return JSON.parse(s||'{}');
+  }catch(e){return{};}
 }
 function loadCfgForm(){
   var c=getCfg();
-  var fields=['cfg-user','cfg-repo','cfg-file','cfg-token'];
-  fields.forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('cfg-user').value=c.user||'';
-  document.getElementById('cfg-repo').value=c.repo||'';
-  document.getElementById('cfg-file').value=c.file||'quiz-data.json';
-  document.getElementById('cfg-token').value=c.token||'';
+  var u=document.getElementById('cfg-user');
+  var r=document.getElementById('cfg-repo');
+  var f=document.getElementById('cfg-file');
+  var t=document.getElementById('cfg-token');
+  if(u)u.value=c.user||'andrelbaptista';
+  if(r)r.value=c.repo||'quiz-fotos';
+  if(f)f.value=c.file||'quiz-data.json';
+  if(t)t.value=c.token||'';
 }
 function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
 function loadFromGitHub(){
@@ -897,23 +913,35 @@ function loadFromGitHub(){
     })
     .then(function(json){
       if(!json)return;
-      quizzes=json.quizzes||[];
-      // Merge users from GitHub (add new users, keep local passwords)
+      // MERGE: keep local quizzes that don't exist in GitHub yet
+      var ghQuizzes=json.quizzes||[];
+      var localOnly=quizzes.filter(function(lq){
+        return !ghQuizzes.find(function(gq){return gq.id===lq.id;});
+      });
+      quizzes=ghQuizzes.concat(localOnly);
+      if(localOnly.length>0){
+        isDirty=true;
+        setSyncBar('unsynced','⚠️ '+localOnly.length+' quiz(zes) local(is) não sincronizado(s) — clique em ☁ Salvar');
+      } else {
+        isDirty=false;
+        setSyncBar('synced','✅ Sincronizado — '+quizzes.reduce(function(a,q){return a+(q.questions?q.questions.length:0);},0)+' questões');
+      }
+      // Merge users from GitHub
       if(json.users&&Array.isArray(json.users)){
         var localUsers=getUsers();
         var merged=localUsers.slice();
         json.users.forEach(function(gu){
-          if(!merged.find(function(lu){return lu.username===gu.username;})){
-            merged.push(gu); // add users that exist in GitHub but not locally
-          }
+          if(!merged.find(function(lu){return lu.username===gu.username;})){merged.push(gu);}
         });
         saveUsers(merged);
       }
-      saveLS();isDirty=false;renderQuizList();
-      setSyncBar('synced','✅ Sincronizado — '+quizzes.reduce(function(a,q){return a+(q.questions?q.questions.length:0);},0)+' questões');
-      toast('Dados carregados!');
+      saveLS();renderQuizList();
     })
-    .catch(function(e){setSyncBar('error','❌ '+e.message);});
+    .catch(function(e){
+      setSyncBar('error','❌ Erro ao carregar do GitHub: '+e.message);
+      // Keep local data on error
+      renderQuizList();
+    });
   // Also get SHA for future saves (needs token)
   if(hasCfg()){
     fetch(ghUrl(),{headers:ghH(),cache:'no-store'})
@@ -1141,8 +1169,11 @@ function createQuiz(){
   var quiz={id:Date.now()+'',name:name,createdBy:currentUser.username,accessAll:accessAll,accessUsers:accessUsers,questions:[],goalEmoji:goalEmoji||'🏆',goalImg:_goalImgData||null};
   _goalImgData=null;
   quizzes.push(quiz);isDirty=true;saveLS();closeModal();renderQuizList();
-  toast('Quiz "'+name+'" criado!');
-  openQuizDetail(quiz.id);
+  toast('Quiz criado! Salvando no GitHub...');
+  setTimeout(function(){
+    syncToGitHub();
+    openQuizDetail(quiz.id);
+  },300);
 }
 function editQuizMeta(id){
   var quiz=getQuiz(id);if(!quiz)return;
@@ -2349,7 +2380,14 @@ function dismissInstallBanner(){
 }
 
 /* ── INIT ── */
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+  // Preserve localStorage when SW updates
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    // Don't reload - just continue with current data
+    console.log('SW updated');
+  });
+}
 (async function(){
   await initUsers();
   loadLS();
