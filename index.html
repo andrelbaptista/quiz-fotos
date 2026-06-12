@@ -2398,6 +2398,15 @@ function startQuizFromDetail(){startQuizById(activeQuizId);}
 function getQCfg(qi){var q=activeQuestions[qi];return(q&&q.cfg)?q.cfg:{attempts:0,result:'score'};}
 function renderQuizQ(){
   var qi=quizOrder[currentQIdx],q=activeQuestions[qi],total=quizOrder.length;
+  // DIAGNOSTIC: log question state
+  console.log('renderQuizQ Q'+(currentQIdx+1)+':',{
+    qtype:q?q.qtype:'UNDEFINED',
+    hasPhoto:!!(q&&q.photo&&typeof q.photo==='string'&&q.photo.length>10),
+    photoType:q?typeof q.photo:'N/A',
+    altsLen:q&&q.alts?q.alts.length:0,
+    text:q?q.text:''
+  });
+  if(!q){toast('Erro: questão '+(currentQIdx+1)+' não encontrada.');return;}
   quizCfg=getQCfg(qi);currentAttempts=answers[currentQIdx].attempts;
   document.getElementById('q-counter-text').textContent='Questão '+(currentQIdx+1)+' de '+total;
   document.getElementById('progress-fill').style.width=(currentQIdx/total*100)+'%';
@@ -2445,6 +2454,11 @@ function renderQuizQ(){
     });
   } else {
     img.style.display='none';
+    // Photo type with no photo - show placeholder
+    if(qtype==='photo'){
+      var _tdNoPhoto=document.getElementById('quiz-type-display');
+      if(_tdNoPhoto)_tdNoPhoto.innerHTML='<div style="text-align:center;padding:40px;font-size:60px;">📷</div>';
+    }
   }
 
   // Question text
@@ -2465,9 +2479,11 @@ function renderQuizQ(){
   // For types without photo, doRender shows interactive version
   function doRender(){
     var hasP=q.photo&&typeof q.photo==='string'&&q.photo.length>10;
+    var qtype2=q.qtype||'photo';
+    console.log('doRender: hasP='+hasP+' qtype='+qtype2+' alts='+(q.alts?q.alts.length:'none'));
     if(hasP){
       // Photo already displayed - just show alternativas
-      renderQuizAlts(answers[currentQIdx].chosen!==-1);
+      if(q.alts&&q.alts.length)renderQuizAlts(answers[currentQIdx].chosen!==-1);
       return;
     }
     if(qtype==='clock'){renderClockQuestion(q);}
@@ -2844,55 +2860,71 @@ function renderTypeToCanvas(q, callback){
   }
 
   if(qtype==='clock'){
-    // Draw clock on canvas
-    var svg=drawClock(q.clockHour||12,q.clockMinute||0,360);
-    if(q.clockMode==='digital'){
-      // Digital clock
+    var ch=q.clockHour||12, cm=q.clockMinute||0, cmode=q.clockMode||'analog';
+    if(cmode==='digital'){
       ctx.fillStyle='#1a1a2e';
       ctx.fillRect(120,174,400,132);
       ctx.fillStyle='#00d4ff';
       ctx.font='bold 80px monospace';
       ctx.textAlign='center';
-      var h=String(q.clockHour||12).padStart(2,'0');
-      var m=String(q.clockMinute||0).padStart(2,'0');
-      ctx.fillText(h+':'+m,320,268);
-      // Period
-      var period=q.clockHour<12?'Manhã':q.clockHour<18?'Tarde':'Noite';
-      var pEmoji=q.clockHour<12?'🌅':q.clockHour<18?'☀️':'🌙';
+      var hh=String(ch).padStart(2,'0'), mm=String(cm).padStart(2,'0');
+      ctx.fillText(hh+':'+mm,320,268);
       ctx.fillStyle='#ffffff';
       ctx.font='bold 26px Arial';
-      ctx.fillText(pEmoji+' '+period,320,314);
+      var per=ch<12?'🌅 Manhã':ch<18?'☀️ Tarde':'🌙 Noite';
+      ctx.fillText(per,320,314);
       finish();
-    } else if(q.clockMode==='period'){
-      // Draw clock + period label
-      var img2=new Image();
-      var svgBlob=new Blob([svg],{type:'image/svg+xml'});
-      var url2=URL.createObjectURL(svgBlob);
-      img2.onload=function(){
-        ctx.drawImage(img2,(640-360)/2,40,360,360);
-        URL.revokeObjectURL(url2);
-        var period=q.clockHour<12?'Manhã':q.clockHour<18?'Tarde':'Noite';
-        var periodColor=q.clockHour<12?'#FF8C00':q.clockHour<18?'#1d9e75':'#6d28d9';
-        ctx.fillStyle=periodColor;
-        ctx.font='bold 38px Arial';
-        ctx.textAlign='center';
-        ctx.fillText(period,320,430);
-        finish();
-      };
-      img2.onerror=finish;
-      img2.src=url2;
     } else {
-      // Analog clock SVG to canvas
-      var img=new Image();
-      var svgBlob2=new Blob([svg],{type:'image/svg+xml'});
-      var url=URL.createObjectURL(svgBlob2);
-      img.onload=function(){
-        ctx.drawImage(img,(640-360)/2,(480-360)/2,360,360);
-        URL.revokeObjectURL(url);
-        finish();
-      };
-      img.onerror=finish;
-      img.src=url;
+      // Draw analog clock DIRECTLY on canvas (no SVG conversion needed)
+      var cx=320,cy=240,r=170;
+      // Background
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.fillStyle='#ffffff';ctx.fill();
+      ctx.strokeStyle='#cccccc';ctx.lineWidth=3;ctx.stroke();
+      // Hour marks + numbers
+      ctx.fillStyle='#1a1a1a';ctx.textAlign='center';ctx.textBaseline='middle';
+      for(var mn=0;mn<60;mn++){
+        var ma=mn/60*Math.PI*2;
+        var isH=mn%5===0;
+        var r1=r-2,r2=r-(isH?32:8);
+        ctx.beginPath();
+        ctx.moveTo(cx+r1*Math.sin(ma),cy-r1*Math.cos(ma));
+        ctx.lineTo(cx+r2*Math.sin(ma),cy-r2*Math.cos(ma));
+        ctx.strokeStyle=isH?'#555':'#bbb';
+        ctx.lineWidth=isH?2.5:1;
+        ctx.stroke();
+      }
+      ctx.font='bold 22px Arial';
+      for(var n=1;n<=12;n++){
+        var na=n/12*Math.PI*2;
+        var nx=cx+(r-50)*Math.sin(na), ny=cy-(r-50)*Math.cos(na);
+        ctx.fillText(n,nx,ny);
+      }
+      // Hour hand
+      var hAng=(ch%12+cm/60)/12*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+88*Math.sin(hAng),cy-88*Math.cos(hAng));
+      ctx.strokeStyle='#1a1a1a';ctx.lineWidth=8;ctx.lineCap='round';ctx.stroke();
+      // Minute hand
+      var mAng=cm/60*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+128*Math.sin(mAng),cy-128*Math.cos(mAng));
+      ctx.strokeStyle='#cc0000';ctx.lineWidth=5;ctx.stroke();
+      // Center dot
+      ctx.beginPath();ctx.arc(cx,cy,9,0,Math.PI*2);
+      ctx.fillStyle='#1a1a1a';ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);
+      ctx.fillStyle='#cc0000';ctx.fill();
+      // Period label if needed
+      if(cmode==='period'){
+        var pLabel=ch<12?'Manhã':ch<18?'Tarde':'Noite';
+        var pColor=ch<12?'#FF8C00':ch<18?'#1d9e75':'#6d28d9';
+        ctx.fillStyle=pColor;ctx.font='bold 38px Arial';ctx.textAlign='center';ctx.textBaseline='alphabetic';
+        ctx.fillText(pLabel,320,455);
+      }
+      finish();
     }
   } else if(qtype==='number'){
     var mode=q.numberMode||'compare';
@@ -2949,17 +2981,26 @@ function renderTypeToCanvas(q, callback){
     ctx.fillText(sym+' '+val,320,266);
     finish();
   } else if(qtype==='shapes'){
-    var svg3=drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',360);
-    var img3=new Image();
-    var svgBlob3=new Blob([svg3],{type:'image/svg+xml'});
-    var url3=URL.createObjectURL(svgBlob3);
-    img3.onload=function(){
-      ctx.drawImage(img3,(640-360)/2,(480-360)/2,360,360);
-      URL.revokeObjectURL(url3);
-      finish();
-    };
-    img3.onerror=finish;
-    img3.src=url3;
+    // Draw shape directly on canvas
+    var sm=q.shapesMain||'circle', sc=q.shapesColor||'#0071e3';
+    var scx=320,scy=240,sr=150;
+    ctx.fillStyle=sc;
+    ctx.beginPath();
+    if(sm==='circle'){ctx.arc(scx,scy,sr,0,Math.PI*2);ctx.fill();}
+    else if(sm==='square'){ctx.roundRect(scx-sr,scy-sr,sr*2,sr*2,8);ctx.fill();}
+    else if(sm==='triangle'){ctx.moveTo(scx,scy-sr);ctx.lineTo(scx-sr,scy+sr);ctx.lineTo(scx+sr,scy+sr);ctx.closePath();ctx.fill();}
+    else if(sm==='rectangle'){ctx.roundRect(scx-sr*1.4,scy-sr*0.7,sr*2.8,sr*1.4,8);ctx.fill();}
+    else if(sm==='star'){
+      for(var si=0;si<10;si++){var sang=si/10*Math.PI*2-Math.PI/2,srad=si%2===0?sr:sr*0.4;
+      if(si===0)ctx.moveTo(scx+srad*Math.cos(sang),scy+srad*Math.sin(sang));
+      else ctx.lineTo(scx+srad*Math.cos(sang),scy+srad*Math.sin(sang));}ctx.closePath();ctx.fill();}
+    else if(sm==='diamond'){ctx.moveTo(scx,scy-sr);ctx.lineTo(scx+sr*1.2,scy);ctx.lineTo(scx,scy+sr);ctx.lineTo(scx-sr*1.2,scy);ctx.closePath();ctx.fill();}
+    else if(sm==='heart'){
+      ctx.moveTo(scx,scy+sr*0.5);
+      ctx.bezierCurveTo(scx-sr*1.2,scy-sr*0.3,scx-sr*1.5,scy-sr*1.2,scx,scy-sr*0.5);
+      ctx.bezierCurveTo(scx+sr*1.5,scy-sr*1.2,scx+sr*1.2,scy-sr*0.3,scx,scy+sr*0.5);
+      ctx.fill();}
+    finish();
   } else if(qtype==='words'){
     var wt=q.wordsText||'';
     var wf=q.wordsFontsize||48;
