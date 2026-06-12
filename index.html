@@ -213,7 +213,7 @@ svg.clock-face{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));}
 .journey-path-dots{position:absolute;bottom:32px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;}
 .journey-dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:0.6;}
 .journey-dot.reached{background:#FFD700;opacity:1;box-shadow:0 0 6px #FFD700;}
-.journey-character{position:absolute;bottom:36px;font-size:32px;transition:left 0.8s cubic-bezier(0.34,1.56,0.64,1);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));transform:scaleX(-1);}
+.journey-character{position:absolute;bottom:30px;font-size:30px;transition:left 0.8s cubic-bezier(0.34,1.56,0.64,1);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));transform:scaleX(-1);}
 .journey-character.walking{animation:walk 0.5s ease-in-out infinite;}
 .journey-character.idle{animation:idle-bounce 1.2s ease-in-out infinite;}
 .journey-character.slip{animation:slip 0.8s ease-in-out forwards;}
@@ -222,14 +222,14 @@ svg.clock-face{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));}
 @keyframes idle-bounce{0%,100%{transform:scaleX(-1) translateY(0);}50%{transform:scaleX(-1) translateY(-4px);}}
 @keyframes slip{0%{transform:scaleX(-1) rotate(0deg);}25%{transform:scaleX(-1) rotate(-30deg) translateY(8px);}50%{transform:scaleX(-1) rotate(10deg) translateY(-4px);}75%{transform:scaleX(-1) rotate(-5deg);}100%{transform:scaleX(-1) rotate(0deg);}}
 @keyframes celebrate{0%,100%{transform:scaleX(-1) translateY(0) scale(1);}50%{transform:scaleX(-1) translateY(-14px) scale(1.25);}}
-.journey-waypoint{position:absolute;bottom:28px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;}
-.journey-wp-dot{width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #888;transition:all 0.4s;}
+.journey-waypoint{position:absolute;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;}
+.journey-wp-dot{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #888;transition:all 0.4s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
 .journey-wp-dot.reached{background:#FFD700;border-color:#FFA500;box-shadow:0 0 8px #FFD700;}
 .journey-wp-dot.current{background:#0071e3;border-color:#0051a2;box-shadow:0 0 8px #0071e3;}
-.journey-wp-num{font-size:9px;font-weight:800;color:#555;margin-top:2px;background:rgba(255,255,255,0.8);border-radius:4px;padding:0 3px;}
-.journey-start-flag{position:absolute;bottom:44px;left:2%;font-size:20px;}
-.journey-flowers{position:absolute;bottom:44px;display:flex;gap:0;pointer-events:none;}
-.journey-flower{font-size:18px;animation:flower-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;transform:scale(0);}
+.journey-wp-num{font-size:9px;font-weight:800;color:#333;margin-top:2px;background:rgba(255,255,255,0.9);border-radius:4px;padding:1px 3px;}
+.journey-start-flag{position:absolute;bottom:30px;left:2%;font-size:22px;}
+.journey-flowers{position:absolute;bottom:28px;left:0;right:0;height:20px;pointer-events:none;display:flex;align-items:center;}
+.journey-flower{position:absolute;font-size:14px;line-height:1;bottom:0;animation:flower-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;transform:scale(0);}
 @keyframes flower-pop{to{transform:scale(1);}}
 .journey-clouds{position:absolute;top:8px;width:100%;pointer-events:none;}
 .journey-cloud{position:absolute;font-size:24px;animation:cloud-move 20s linear infinite;opacity:0.7;}
@@ -237,8 +237,8 @@ svg.clock-face{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));}
 @keyframes sun-spin{to{transform:rotate(360deg);}}
 @keyframes cloud-move{from{transform:translateX(100%);}to{transform:translateX(-150px);}}
 @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-8px);}75%{transform:translateX(8px);}}
-.journey-goal{position:absolute;right:12px;bottom:36px;font-size:36px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
-.journey-goal-img{position:absolute;right:8px;bottom:36px;width:50px;height:50px;object-fit:cover;border-radius:50%;border:3px solid #FFD700;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+.journey-goal{position:absolute;right:12px;bottom:30px;font-size:36px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
+.journey-goal-img{position:absolute;right:8px;bottom:30px;width:52px;height:52px;object-fit:cover;border-radius:50%;border:3px solid #FFD700;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
 .journey-progress{position:absolute;top:8px;left:12px;background:rgba(0,0,0,0.35);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;}
 .journey-msg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.75);color:#fff;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.3s;}
 .journey-msg.show{opacity:1;}
@@ -747,7 +747,7 @@ svg.hist-chart{display:block;max-width:100%;}
         <div class="journey-path"></div>
         <span class="journey-start-flag">🚩</span>
         <div id="journey-waypoints" style="position:absolute;bottom:0;left:0;right:0;height:100%;pointer-events:none;"></div>
-        <div class="journey-flowers" id="journey-flowers" style="bottom:44px;left:20px;position:absolute;"></div>
+        <div class="journey-flowers" id="journey-flowers"></div>
         <div class="journey-character idle" id="journey-char" style="left:4%;">🚶</div>
         <div class="journey-goal" id="journey-goal">🏆</div>
         <div class="journey-progress" id="journey-progress">0/0</div>
@@ -1806,15 +1806,25 @@ function onPieceTouchDrop(e){
 function placePiece(hole,piece,correct){
   if(correct){
     hole.innerHTML='';
-    hole.appendChild(piece.cloneNode(true));
+    // Copy canvas content properly (cloneNode loses pixel data)
+    var srcCanvas=piece.querySelector('canvas');
+    if(srcCanvas){
+      var dstCanvas=document.createElement('canvas');
+      dstCanvas.width=srcCanvas.width;
+      dstCanvas.height=srcCanvas.height;
+      dstCanvas.style.width='100%';
+      dstCanvas.style.height='100%';
+      dstCanvas.getContext('2d').drawImage(srcCanvas,0,0);
+      hole.appendChild(dstCanvas);
+    }
     hole.style.border='2px solid var(--green)';
+    hole.style.background='transparent';
     hole.classList.remove('puzzle-hole');
     piece.remove();
     puzzleState.solved++;
     playSuccess();showEmoji('👏');
     speak('Muito bem!');
     if(puzzleState.solved>=puzzleState.missingIdxs.length){
-      // All placed!
       setTimeout(function(){
         answers[currentQIdx].correct=true;answers[currentQIdx].chosen=0;
         journeyCorrectAnswer();
@@ -2288,7 +2298,7 @@ function initJourney(total, quiz){
   var wp=document.getElementById('journey-waypoints');
   if(wp){
     wp.innerHTML='';
-    var minLeft=12, maxLeft=82;
+    var minLeft=8, maxLeft=85;
     for(var i=0;i<total;i++){
       var pct=minLeft+(i/(total-1||1))*(maxLeft-minLeft);
       var dot=document.createElement('div');
@@ -2303,10 +2313,12 @@ function initJourney(total, quiz){
   // Mark first as current
   var first=document.getElementById('journey-wpdot-0');
   if(first)first.className='journey-wp-dot current';
-  // Position character at start
+  // Position character AT the flag
+  var wrap2=document.getElementById('journey-wrap');
+  var ww=wrap2?wrap2.offsetWidth||320:320;
+  var startPct=Math.round(0.08*ww)/ww*100;
   var char=document.getElementById('journey-char');
-  if(char)char.style.left='4%';
-  // Show journey from the start
+  if(char)char.style.left=startPct+'%';
   var journeyWrap=document.getElementById('journey-wrap');
   if(journeyWrap)journeyWrap.style.display='block';
   updateJourney(false);
@@ -2314,50 +2326,24 @@ function initJourney(total, quiz){
 }
 
 function updateJourney(isCorrect){
-  var minLeft=4, maxLeft=78;
-  var wpMinLeft=12, wpMaxLeft=82;
-  // Character position based on correct answers
-  var charPct=journeyTotal>0?(journeyCorrect/journeyTotal):0;
-  var left=minLeft+charPct*(maxLeft-minLeft);
-  var char=document.getElementById('journey-char');
-  if(char){
-    char.style.left=left+'%';
+  var wrap=document.getElementById('journey-wrap');
+  var wrapW=wrap?wrap.offsetWidth||320:320;
+  var startPx=Math.round(0.08*wrapW);
+  var endPx=Math.round(0.85*wrapW);
+  var charPx=journeyCorrect===0?startPx:startPx+Math.round((journeyCorrect/journeyTotal)*(endPx-startPx));
+  var ch=document.getElementById('journey-char');
+  if(ch){
+    ch.style.left=(charPx/wrapW*100)+'%';
     if(isCorrect){setCharState('walking');setTimeout(function(){setCharState('idle');},900);}
   }
-  // Update waypoint dots
-  for(var i=0;i<journeyTotal;i++){
-    var dot=document.getElementById('journey-wpdot-'+i);
-    if(!dot)continue;
-    if(i<journeyCorrect){dot.className='journey-wp-dot reached';}
-    else if(i===journeyCorrect&&journeyCorrect<journeyTotal){dot.className='journey-wp-dot current';}
-    else{dot.className='journey-wp-dot';}
-  }
-  // Add flowers at ALL reached waypoint positions
-  if(isCorrect){
-    var flowersEl=document.getElementById('journey-flowers');
-    var wrap=document.getElementById('journey-wrap');
-    if(flowersEl&&wrap){
-      var wrapW=wrap.offsetWidth||320;
-      // Add a flower at the newly reached waypoint
-      for(var fi=journeyCorrect-1;fi<=journeyCorrect-1;fi++){
-        if(fi<0)continue;
-        var fPct=wpMinLeft+(fi/(journeyTotal-1||1))*(wpMaxLeft-wpMinLeft);
-        var fX=Math.round(fPct/100*wrapW);
-        var span=document.createElement('span');
-        span.className='journey-flower';
-        span.style.position='absolute';
-        span.style.left=fX+'px';
-        span.style.bottom='44px';
-        // Random flower from array
-        var randomFlower=flowers[Math.floor(Math.random()*flowers.length)];
-        span.textContent=randomFlower;
-        flowersEl.appendChild(span);
-      }
-    }
-  }
-  // Update progress
+  rebuildFlowers();
   var prog=document.getElementById('journey-progress');
   if(prog)prog.textContent=journeyCorrect+'/'+journeyTotal;
+  if(journeyCorrect>0&&journeyCorrect>=journeyTotal){
+    setCharState('celebrate');
+    var goalImg=document.getElementById('journey-goal-img');
+    if(goalImg){goalImg.style.transform='scale(1.3)';goalImg.style.boxShadow='0 0 20px #FFD700';}
+  }
 }
 
 function setCharState(state){
@@ -2385,33 +2371,34 @@ function showJourneyAnimation(isCorrect){
 function rebuildFlowers(){
   var flowersEl=document.getElementById('journey-flowers');
   var wrap=document.getElementById('journey-wrap');
-  if(!flowersEl||!wrap)return;
+  if(!flowersEl||!wrap||journeyTotal===0)return;
   flowersEl.innerHTML='';
   var wrapW=wrap.offsetWidth||320;
-  var wpMinLeft=12,wpMaxLeft=82;
-  for(var fi=0;fi<journeyCorrect;fi++){
-    var fPct=wpMinLeft+(fi/(journeyTotal-1||1))*(wpMaxLeft-wpMinLeft);
-    var fX=Math.round(fPct/100*wrapW);
-    var span=document.createElement('span');
-    span.className='journey-flower';
-    span.style.position='absolute';
-    span.style.left=fX+'px';
-    span.style.bottom='44px';
-    span.textContent=flowers[fi%flowers.length];
-    flowersEl.appendChild(span);
+  // Path goes from 8% to 85% of wrap width
+  var startPx=Math.round(0.08*wrapW);
+  var endPx=Math.round(0.85*wrapW);
+  // Character end position based on correct answers
+  var charEndPx=startPx+Math.round((journeyCorrect/journeyTotal)*(endPx-startPx));
+  // Dense flowers from start to charEndPx
+  if(journeyCorrect>0){
+    var spacing=12; // px between flowers
+    var numFlowers=Math.floor((charEndPx-startPx)/spacing)+1;
+    for(var fi=0;fi<numFlowers;fi++){
+      var fX=startPx+(fi*spacing);
+      if(fX>charEndPx)break;
+      var span=document.createElement('span');
+      span.className='journey-flower';
+      span.style.left=fX+'px';
+      span.textContent=flowers[fi%flowers.length];
+      flowersEl.appendChild(span);
+    }
   }
-  // Also update character position
-  var minLeft=4,maxLeft=78;
-  var charPct=journeyTotal>0?(journeyCorrect/journeyTotal):0;
-  var charLeft=minLeft+charPct*(maxLeft-minLeft);
-  var ch=document.getElementById('journey-char');
-  if(ch)ch.style.left=charLeft+'%';
   // Update waypoint dots
   for(var i=0;i<journeyTotal;i++){
     var dot=document.getElementById('journey-wpdot-'+i);
     if(!dot)continue;
     if(i<journeyCorrect)dot.className='journey-wp-dot reached';
-    else if(i===journeyCorrect)dot.className='journey-wp-dot current';
+    else if(i===journeyCorrect&&journeyCorrect<journeyTotal)dot.className='journey-wp-dot current';
     else dot.className='journey-wp-dot';
   }
 }
@@ -2463,10 +2450,10 @@ function startQuizById(id){
   currentAttempts=0;
   showScreen('quiz');
   document.getElementById('screen-title').textContent=quiz.name;
-  // Init journey and render AFTER screen is shown
+  // Init journey first, then render question
   setTimeout(function(){
     initJourney(quizOrder.length,quiz);
-    renderQuizQ();
+    setTimeout(function(){renderQuizQ();},30);
   },80);
 }
 function startQuizFromDetail(){startQuizById(activeQuizId);}
@@ -2497,10 +2484,10 @@ function renderQuizQ(){
   // Clear type display
   var typeDisplay=document.getElementById('quiz-type-display');
   if(typeDisplay)typeDisplay.innerHTML='';
-  // Show journey always - rebuild flowers for current progress
+  // Show journey - rebuild flowers if journey initialized
   var journeyWrap=document.getElementById('journey-wrap');
   if(journeyWrap)journeyWrap.style.display='block';
-  rebuildFlowers();
+  if(journeyTotal>0)rebuildFlowers();
 
   var qtype=q.qtype||'photo';
 
@@ -2788,14 +2775,10 @@ function restartQuiz(){
   answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});
   currentQIdx=0;currentAttempts=0;
   journeyCorrect=0;
-  var jw=document.getElementById('journey-wrap');
-  if(jw)jw.style.display='none';
-  var fl=document.getElementById('journey-flowers');
-  if(fl)fl.innerHTML='';
   showScreen('quiz');
   setTimeout(function(){
     initJourney(quizOrder.length,getQuiz(activeQuizId));
-    renderQuizQ();
+    setTimeout(function(){renderQuizQ();},30);
   },80);
 }
 
