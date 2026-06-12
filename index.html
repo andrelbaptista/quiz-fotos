@@ -2408,7 +2408,11 @@ function renderQuizQ(){
     showScreen('quiz');
   }
 
-  quizCfg=getQCfg(qi);currentAttempts=answers[currentQIdx].attempts;
+  quizCfg=getQCfg(qi);
+  if(!answers||!answers[currentQIdx]){
+    answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});
+  }
+  currentAttempts=answers[currentQIdx].attempts||0;
 
   var counterEl=document.getElementById('q-counter-text');
   if(counterEl)counterEl.textContent='Questão '+(currentQIdx+1)+' de '+total;
