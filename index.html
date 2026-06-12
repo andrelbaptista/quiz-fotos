@@ -1659,39 +1659,48 @@ var dragPiece=null;
 function renderPuzzleQuestion(q){
   var ae=document.getElementById('quiz-alts');
   ae.innerHTML='';
+  if(!q.photo||typeof q.photo!=='string'||q.photo.length<10){
+    ae.innerHTML='<div style="text-align:center;padding:20px;color:var(--text2);">⏳ Carregando...</div>';
+    return;
+  }
   var cols=q.puzzleCols||3,rows=q.puzzleRows||3,missing=q.puzzleMissing||3;
   puzzleState={cols:cols,rows:rows,missing:missing,imgData:q.photo,solved:0,pieces:[],grid:[]};
-  // Build grid
   var totalPieces=cols*rows;
   var missingIdxs=[];
-  while(missingIdxs.length<Math.min(missing,totalPieces)){
-    var idx=Math.floor(Math.random()*totalPieces);
-    if(!missingIdxs.includes(idx))missingIdxs.push(idx);
+  // Use deterministic missing pieces based on quiz state (not random each time)
+  var seed=q.puzzleMissing||3;
+  for(var mi=0;mi<totalPieces&&missingIdxs.length<Math.min(missing,totalPieces);mi++){
+    var candidateIdx=Math.floor((mi*7+3)%totalPieces);
+    if(!missingIdxs.includes(candidateIdx))missingIdxs.push(candidateIdx);
   }
   puzzleState.missingIdxs=missingIdxs;
+
+  // Instructions
+  var inst=document.createElement('div');
+  inst.style.cssText='text-align:center;font-size:13px;color:var(--text2);margin-bottom:8px;';
+  inst.textContent='🧩 Arraste as peças para os buracos · Toque 2x para girar';
+  ae.appendChild(inst);
+
   var wrap=document.createElement('div');
   wrap.style.cssText='position:relative;width:100%;max-width:320px;margin:0 auto 16px;';
-  // Create image canvas for slicing
   var img=new Image();
   img.onload=function(){
-    var W=320,H=Math.round(img.naturalHeight/img.naturalWidth*W);
+    var W=Math.min(320,window.innerWidth-40),H=Math.round(img.naturalHeight/img.naturalWidth*W);
     var pw=W/cols,ph=H/rows;
-    // Build grid display
     wrap.innerHTML='';
     var grid=document.createElement('div');
     grid.style.cssText='display:grid;grid-template-columns:repeat('+cols+',1fr);width:'+W+'px;border:2px solid var(--border2);border-radius:8px;overflow:hidden;margin:0 auto;';
     for(var i=0;i<totalPieces;i++){
       var cell=document.createElement('div');
-      cell.style.cssText='width:'+pw+'px;height:'+ph+'px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.3);';
+      cell.style.cssText='width:'+pw+'px;height:'+ph+'px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.3);box-sizing:border-box;';
       cell.dataset.idx=i;
       if(missingIdxs.includes(i)){
         cell.style.background='rgba(0,113,227,0.15)';
         cell.style.border='2px dashed var(--blue)';
         cell.classList.add('puzzle-hole');
-        cell.addEventListener('dragover',function(e){e.preventDefault();this.style.background='rgba(0,113,227,0.3)';});
+        cell.addEventListener('dragover',function(e){e.preventDefault();this.style.background='rgba(0,113,227,0.35)';});
         cell.addEventListener('dragleave',function(){this.style.background='rgba(0,113,227,0.15)';});
         cell.addEventListener('drop',onPieceDrop);
-        // Touch support
         cell.addEventListener('touchend',onPieceTouchDrop,{passive:false});
       } else {
         var c=document.createElement('canvas');
@@ -1704,25 +1713,48 @@ function renderPuzzleQuestion(q){
     }
     wrap.appendChild(grid);
     ae.appendChild(wrap);
-    // Build piece tray
+    // Tray label
+    var trayLabel=document.createElement('div');
+    trayLabel.style.cssText='text-align:center;font-size:12px;color:var(--text2);margin-bottom:6px;';
+    trayLabel.textContent='Peças disponíveis:';
+    ae.appendChild(trayLabel);
+    // Piece tray
     var tray=document.createElement('div');
     tray.id='puzzle-tray';
-    tray.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);';
-    // Shuffle missing pieces
+    tray.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);min-height:'+(ph+24)+'px;';
     var shuffled=missingIdxs.slice().sort(function(){return Math.random()-0.5;});
     shuffled.forEach(function(mi){
       var pc=document.createElement('div');
-      pc.style.cssText='width:'+pw+'px;height:'+ph+'px;border-radius:6px;overflow:hidden;cursor:grab;border:2px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,0.2);';
+      pc.style.cssText='width:'+pw+'px;height:'+ph+'px;border-radius:6px;overflow:hidden;cursor:grab;border:2px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;flex-shrink:0;';
       pc.dataset.pieceIdx=mi;
+      pc.dataset.rotation='0';
       pc.draggable=true;
       var c2=document.createElement('canvas');
       var col2=mi%cols,row2=Math.floor(mi/cols);
       c2.width=pw;c2.height=ph;
       c2.getContext('2d').drawImage(img,col2*img.naturalWidth/cols,row2*img.naturalHeight/rows,img.naturalWidth/cols,img.naturalHeight/rows,0,0,pw,ph);
       pc.appendChild(c2);
+      // Rotation label
+      var rotLabel=document.createElement('div');
+      rotLabel.style.cssText='position:absolute;bottom:2px;right:2px;font-size:10px;background:rgba(0,0,0,0.5);color:#fff;padding:1px 3px;border-radius:3px;';
+      rotLabel.textContent='2x↻';
+      pc.appendChild(rotLabel);
+      // Double tap/click to rotate
+      var tapCount=0,tapTimer=null;
+      pc.addEventListener('click',function(){
+        tapCount++;
+        if(tapTimer)clearTimeout(tapTimer);
+        tapTimer=setTimeout(function(){
+          if(tapCount>=2){
+            var rot=(parseInt(this.dataset.rotation||'0')+90)%360;
+            this.dataset.rotation=rot;
+            this.querySelector('canvas').style.transform='rotate('+rot+'deg)';
+          }
+          tapCount=0;
+        }.bind(this),300);
+      });
       pc.addEventListener('dragstart',function(e){dragPiece=this;this.style.opacity='0.5';});
       pc.addEventListener('dragend',function(){this.style.opacity='1';});
-      // Touch support
       pc.addEventListener('touchstart',onPieceTouchStart,{passive:true});
       pc.addEventListener('touchmove',onPieceTouchMove,{passive:false});
       tray.appendChild(pc);
@@ -1731,6 +1763,7 @@ function renderPuzzleQuestion(q){
   };
   img.src=q.photo;
 }
+
 
 function onPieceDrop(e){
   e.preventDefault();
@@ -2226,7 +2259,7 @@ function stopListening(){
 
 /* ── JOURNEY ── */
 var journeyCorrect=0,journeyTotal=0,journeyGoalImg=null,journeyGoalEmoji='🏆';
-var flowers=['🌸','🌺','🌻','🌼','🌷','💐','🌹','🍀'];
+var flowers=['🌸','🌺','🌻','🌼','🌷','🌹','💐','🍀','🌿','🍁','⭐','🌟','✨','🎀','🎊','🎉','🦋','🐝','🌈','💫'];
 
 function initJourney(total, quiz){
   journeyCorrect=0;journeyTotal=total;
@@ -2296,18 +2329,27 @@ function updateJourney(isCorrect){
     else if(i===journeyCorrect&&journeyCorrect<journeyTotal){dot.className='journey-wp-dot current';}
     else{dot.className='journey-wp-dot';}
   }
-  // Add flower at previous correct position
-  if(isCorrect&&journeyCorrect>0){
+  // Add flowers at ALL reached waypoint positions
+  if(isCorrect){
     var flowersEl=document.getElementById('journey-flowers');
     var wrap=document.getElementById('journey-wrap');
     if(flowersEl&&wrap){
-      var prevPct=(journeyCorrect-1)/(journeyTotal-1||1);
-      var wrapW=wrap.offsetWidth||300;
-      var flowerX=Math.round((wpMinLeft/100+prevPct*(wpMaxLeft-wpMinLeft)/100)*wrapW);
-      var span=document.createElement('span');
-      span.className='journey-flower';span.style.position='absolute';span.style.left=flowerX+'px';
-      span.textContent=flowers[(journeyCorrect-1)%flowers.length];
-      flowersEl.appendChild(span);
+      var wrapW=wrap.offsetWidth||320;
+      // Add a flower at the newly reached waypoint
+      for(var fi=journeyCorrect-1;fi<=journeyCorrect-1;fi++){
+        if(fi<0)continue;
+        var fPct=wpMinLeft+(fi/(journeyTotal-1||1))*(wpMaxLeft-wpMinLeft);
+        var fX=Math.round(fPct/100*wrapW);
+        var span=document.createElement('span');
+        span.className='journey-flower';
+        span.style.position='absolute';
+        span.style.left=fX+'px';
+        span.style.bottom='44px';
+        // Random flower from array
+        var randomFlower=flowers[Math.floor(Math.random()*flowers.length)];
+        span.textContent=randomFlower;
+        flowersEl.appendChild(span);
+      }
     }
   }
   // Update progress
@@ -2336,11 +2378,31 @@ function showJourneyAnimation(isCorrect){
   var journeyWrap=document.getElementById('journey-wrap');
   if(!journeyWrap)return;
   journeyWrap.style.display='block';
+  // Rebuild all flowers from scratch to show all progress
+  rebuildFlowers();
   updateJourney(isCorrect);
-  // Hide journey after 2.5 seconds and move to next
-  setTimeout(function(){
-    // journey stays visible until next question click
-  },200);
+}
+
+function rebuildFlowers(){
+  var flowersEl=document.getElementById('journey-flowers');
+  var wrap=document.getElementById('journey-wrap');
+  if(!flowersEl||!wrap)return;
+  // Clear existing
+  flowersEl.innerHTML='';
+  var wrapW=wrap.offsetWidth||320;
+  var wpMinLeft=12,wpMaxLeft=82;
+  // Add flower for each correct answer so far
+  for(var fi=0;fi<journeyCorrect;fi++){
+    var fPct=wpMinLeft+(fi/(journeyTotal-1||1))*(wpMaxLeft-wpMinLeft);
+    var fX=Math.round(fPct/100*wrapW);
+    var span=document.createElement('span');
+    span.className='journey-flower';
+    span.style.position='absolute';
+    span.style.left=fX+'px';
+    span.style.bottom='44px';
+    span.textContent=flowers[fi%flowers.length];
+    flowersEl.appendChild(span);
+  }
 }
 
 function journeyWrongAnswer(){
@@ -2435,7 +2497,12 @@ function renderQuizQ(){
   // Treat false/null/undefined as no photo
   var hasPhoto=q.photo&&typeof q.photo==='string'&&q.photo.length>10;
   if(hasPhoto){
-    img.src=q.photo;img.style.display='block';
+    // For puzzle: hide the img tag - renderPuzzleQuestion handles display itself
+    if(qtype==='puzzle'){
+      img.style.display='none';
+    } else {
+      img.src=q.photo;img.style.display='block';
+    }
     // Reset quiz-alts display after setting photo
     var _td=document.getElementById('quiz-type-display');
     if(_td)_td.innerHTML='';
@@ -2488,7 +2555,9 @@ function renderQuizQ(){
     var hasP=q.photo&&typeof q.photo==='string'&&q.photo.length>10;
     var qtype2=q.qtype||'photo';
     console.log('doRender: hasP='+hasP+' qtype='+qtype2+' alts='+(q.alts?q.alts.length:'none'));
-    if(hasP){
+    // Types that need special rendering even when photo exists
+    var specialTypes=['puzzle','period','number','shapes','words'];
+    if(hasP&&specialTypes.indexOf(qtype)===-1){
       // Photo already displayed - just show alternativas
       if(q.alts&&q.alts.length)renderQuizAlts(answers[currentQIdx].chosen!==-1);
       return;
@@ -2697,7 +2766,23 @@ function confirmAbort(){showModal('<h2>Encerrar quiz?</h2><p>O progresso será p
 function buildResults(){var correct=0;answers.forEach(function(a){if(a.correct)correct++;});var total=quizOrder.length,pct=Math.round(correct/total*100);document.getElementById('res-correct').textContent=correct;document.getElementById('res-wrong').textContent=total-correct;document.getElementById('res-pct').textContent=pct+'%';
   // Record result in history
   if(currentUser&&activeQuizId)recordResult(activeQuizId,correct,total);var showRev=quizOrder.some(function(qi){return getQCfg(qi).result==='review';});var rev=document.getElementById('review-section');if(showRev){rev.style.display='block';var list=document.getElementById('results-list');list.innerHTML='';quizOrder.forEach(function(qi,idx){if(getQCfg(qi).result!=='review')return;var q=activeQuestions[qi],ans=answers[idx],ci=q.alts.findIndex(function(a){return a.correct;});var ok=ans.correct;var item=document.createElement('div');item.className='result-item';item.style.borderColor=ok?'var(--green-border)':'var(--red-border)';var imgH=q.photo?'<img class="result-img" src="'+q.photo+'" alt="">':'';var altsH='';(q.alts||[]).forEach(function(alt,ai){var cls='neutral',icon='';if(ai===ci){cls='correct';icon='✓ ';}else if(ai===ans.chosen&&!ok){cls='wrong';icon='✗ ';}altsH+='<div class="r-alt '+cls+'"><span class="rk">'+LETTERS[ai]+'</span>'+icon+esc(alt.text)+'</div>';});var lbl=q.text?q.text.substring(0,52)+(q.text.length>52?'…':''):'Questão '+(idx+1);item.innerHTML='<div class="result-header"><span>'+(idx+1)+'. '+esc(lbl)+'</span><span>'+(ok?'✅':'❌')+'</span></div>'+imgH+'<div class="result-alts">'+altsH+'</div>';list.appendChild(item);});}else{rev.style.display='none';}}
-function restartQuiz(){answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});currentQIdx=0;currentAttempts=0;showScreen('quiz');renderQuizQ();}
+function restartQuiz(){
+  // Close victory overlay if open
+  var vo=document.getElementById('victory-overlay');
+  if(vo)vo.style.display='none';
+  answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});
+  currentQIdx=0;currentAttempts=0;
+  journeyCorrect=0;
+  var jw=document.getElementById('journey-wrap');
+  if(jw)jw.style.display='none';
+  var fl=document.getElementById('journey-flowers');
+  if(fl)fl.innerHTML='';
+  showScreen('quiz');
+  setTimeout(function(){
+    initJourney(quizOrder.length,getQuiz(activeQuizId));
+    renderQuizQ();
+  },80);
+}
 
 
 /* ── HISTORY ── */
