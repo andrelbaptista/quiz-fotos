@@ -1657,6 +1657,9 @@ var puzzleState={pieces:[],grid:[],cols:3,rows:3,missing:3,imgData:null,solved:0
 var dragPiece=null;
 
 function renderPuzzleQuestion(q){
+  // Hide the main photo - puzzle builds its own display
+  var mainImg=document.getElementById('quiz-img');
+  if(mainImg)mainImg.style.display='none';
   var ae=document.getElementById('quiz-alts');
   ae.innerHTML='';
   if(!q.photo||typeof q.photo!=='string'||q.photo.length<10){
@@ -2303,9 +2306,9 @@ function initJourney(total, quiz){
   // Position character at start
   var char=document.getElementById('journey-char');
   if(char)char.style.left='4%';
-  // Keep journey hidden until first answer
+  // Show journey from the start
   var journeyWrap=document.getElementById('journey-wrap');
-  if(journeyWrap)journeyWrap.style.display='none';
+  if(journeyWrap)journeyWrap.style.display='block';
   updateJourney(false);
   setCharState('idle');
 }
@@ -2375,10 +2378,6 @@ function journeyCorrectAnswer(){
 }
 
 function showJourneyAnimation(isCorrect){
-  var journeyWrap=document.getElementById('journey-wrap');
-  if(!journeyWrap)return;
-  journeyWrap.style.display='block';
-  // Rebuild all flowers from scratch to show all progress
   rebuildFlowers();
   updateJourney(isCorrect);
 }
@@ -2387,11 +2386,9 @@ function rebuildFlowers(){
   var flowersEl=document.getElementById('journey-flowers');
   var wrap=document.getElementById('journey-wrap');
   if(!flowersEl||!wrap)return;
-  // Clear existing
   flowersEl.innerHTML='';
   var wrapW=wrap.offsetWidth||320;
   var wpMinLeft=12,wpMaxLeft=82;
-  // Add flower for each correct answer so far
   for(var fi=0;fi<journeyCorrect;fi++){
     var fPct=wpMinLeft+(fi/(journeyTotal-1||1))*(wpMaxLeft-wpMinLeft);
     var fX=Math.round(fPct/100*wrapW);
@@ -2402,6 +2399,20 @@ function rebuildFlowers(){
     span.style.bottom='44px';
     span.textContent=flowers[fi%flowers.length];
     flowersEl.appendChild(span);
+  }
+  // Also update character position
+  var minLeft=4,maxLeft=78;
+  var charPct=journeyTotal>0?(journeyCorrect/journeyTotal):0;
+  var charLeft=minLeft+charPct*(maxLeft-minLeft);
+  var ch=document.getElementById('journey-char');
+  if(ch)ch.style.left=charLeft+'%';
+  // Update waypoint dots
+  for(var i=0;i<journeyTotal;i++){
+    var dot=document.getElementById('journey-wpdot-'+i);
+    if(!dot)continue;
+    if(i<journeyCorrect)dot.className='journey-wp-dot reached';
+    else if(i===journeyCorrect)dot.className='journey-wp-dot current';
+    else dot.className='journey-wp-dot';
   }
 }
 
@@ -2486,9 +2497,10 @@ function renderQuizQ(){
   // Clear type display
   var typeDisplay=document.getElementById('quiz-type-display');
   if(typeDisplay)typeDisplay.innerHTML='';
-  // Hide journey during question
+  // Show journey always - rebuild flowers for current progress
   var journeyWrap=document.getElementById('journey-wrap');
-  if(journeyWrap)journeyWrap.style.display='none';
+  if(journeyWrap)journeyWrap.style.display='block';
+  rebuildFlowers();
 
   var qtype=q.qtype||'photo';
 
@@ -2499,6 +2511,9 @@ function renderQuizQ(){
   if(hasPhoto){
     // For puzzle: hide the img tag - renderPuzzleQuestion handles display itself
     if(qtype==='puzzle'){
+      // Puzzle uses its own img inside renderPuzzleQuestion
+      img.style.display='none';
+    } else if(qtype==='doc'&&!q.photo){
       img.style.display='none';
     } else {
       img.src=q.photo;img.style.display='block';
