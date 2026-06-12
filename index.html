@@ -2413,10 +2413,21 @@ function renderQuizQ(){
 
   var qtype=q.qtype||'photo';
 
-  // Show photo for photo, puzzle, clock (background) types
+  // Show photo for all types - generate if missing
   var img=document.getElementById('quiz-img');
-  if(q.photo&&(qtype==='photo'||qtype==='puzzle')){
+  if(q.photo){
     img.src=q.photo;img.style.display='block';
+  } else if(qtype!=='photo'&&qtype!=='puzzle'){
+    // Generate image on the fly for types without photo
+    img.style.display='none';
+    var typeDisplay=document.getElementById('quiz-type-display');
+    // Show loading
+    if(typeDisplay)typeDisplay.innerHTML='<div style="text-align:center;padding:20px;color:var(--text2);">⏳ Gerando...</div>';
+    renderTypeToCanvas(q,function(imgData){
+      q.photo=imgData; // cache it
+      img.src=imgData;img.style.display='block';
+      if(typeDisplay)typeDisplay.innerHTML='';
+    });
   } else {
     img.style.display='none';
   }
