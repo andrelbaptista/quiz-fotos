@@ -405,6 +405,16 @@
           }
         }
       ]
+    },
+    {
+      "id": "1781264121729",
+      "name": "xxxxxxxxxxxxxx",
+      "createdBy": "master",
+      "accessAll": true,
+      "accessUsers": [],
+      "questions": [],
+      "goalEmoji": "🏆",
+      "goalImg": null
     }
   ],
   "users": [
