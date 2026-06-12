@@ -2390,28 +2390,32 @@ function startQuizById(id){
   currentAttempts=0;
   showScreen('quiz');
   document.getElementById('screen-title').textContent=quiz.name;
-  // Init journey
-  setTimeout(function(){initJourney(quizOrder.length,quiz);},100);
-  renderQuizQ();
+  // Init journey and render AFTER screen is shown
+  setTimeout(function(){
+    initJourney(quizOrder.length,quiz);
+    renderQuizQ();
+  },80);
 }
 function startQuizFromDetail(){startQuizById(activeQuizId);}
 function getQCfg(qi){var q=activeQuestions[qi];return(q&&q.cfg)?q.cfg:{attempts:0,result:'score'};}
 function renderQuizQ(){
   var qi=quizOrder[currentQIdx],q=activeQuestions[qi],total=quizOrder.length;
-  // DIAGNOSTIC: log question state
-  console.log('renderQuizQ Q'+(currentQIdx+1)+':',{
-    qtype:q?q.qtype:'UNDEFINED',
-    hasPhoto:!!(q&&q.photo&&typeof q.photo==='string'&&q.photo.length>10),
-    photoType:q?typeof q.photo:'N/A',
-    altsLen:q&&q.alts?q.alts.length:0,
-    text:q?q.text:''
-  });
   if(!q){toast('Erro: questão '+(currentQIdx+1)+' não encontrada.');return;}
+
+  // Ensure quiz screen is active before touching DOM elements
+  var screen=document.getElementById('screen-quiz');
+  if(!screen||!screen.classList.contains('active')){
+    showScreen('quiz');
+  }
+
   quizCfg=getQCfg(qi);currentAttempts=answers[currentQIdx].attempts;
-  document.getElementById('q-counter-text').textContent='Questão '+(currentQIdx+1)+' de '+total;
-  document.getElementById('progress-fill').style.width=(currentQIdx/total*100)+'%';
+
+  var counterEl=document.getElementById('q-counter-text');
+  if(counterEl)counterEl.textContent='Questão '+(currentQIdx+1)+' de '+total;
+  var fillEl=document.getElementById('progress-fill');
+  if(fillEl)fillEl.style.width=(currentQIdx/total*100)+'%';
   var badge=document.getElementById('attempts-badge');
-  if(quizCfg.attempts>0){badge.style.display='inline-flex';updateAttemptsBadge();}else{badge.style.display='none';}
+  if(badge){if(quizCfg.attempts>0){badge.style.display='inline-flex';updateAttemptsBadge();}else{badge.style.display='none';}}
 
   // Clear type display
   var typeDisplay=document.getElementById('quiz-type-display');
@@ -2464,15 +2468,14 @@ function renderQuizQ(){
   // Question text
   var textEl=document.getElementById('quiz-text');
   var titleBox=document.getElementById('quiz-title-box');
-  if(q.text){
+  if(q.text&&titleBox){
     titleBox.style.display='block';
     titleBox.className='quiz-title-box has-text';
     window._currentSpeakText=q.text;
     textEl.innerHTML=esc(q.text)+
       ' <button class="speak-btn" onclick="speak(window._currentSpeakText)" title="Ouvir">🔊</button>';
   } else {
-    titleBox.style.display='none';
-    titleBox.className='quiz-title-box';
+    if(titleBox){titleBox.style.display='none';titleBox.className='quiz-title-box';}
   }
 
   // For types that generated image (photo exists), just show alts directly
