@@ -228,9 +228,9 @@ svg.clock-face{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));}
 .journey-wp-dot.current{background:#0071e3;border-color:#0051a2;box-shadow:0 0 8px #0071e3;}
 .journey-wp-num{font-size:9px;font-weight:800;color:#333;margin-top:2px;background:rgba(255,255,255,0.9);border-radius:4px;padding:1px 3px;}
 .journey-start-flag{position:absolute;bottom:30px;left:2%;font-size:22px;}
-.journey-flowers{position:absolute;bottom:28px;left:0;right:0;height:20px;pointer-events:none;display:flex;align-items:center;}
-.journey-flower{position:absolute;font-size:14px;line-height:1;bottom:0;animation:flower-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;transform:scale(0);}
-@keyframes flower-pop{to{transform:scale(1);}}
+.journey-flowers{position:absolute;bottom:28px;left:0;right:0;height:18px;pointer-events:none;}
+.journey-flower{position:absolute;bottom:1px;font-size:13px;line-height:1;animation:flower-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;transform:scale(0);}
+@keyframes flower-pop{0%{transform:scale(0);}100%{transform:scale(1);}}
 .journey-clouds{position:absolute;top:8px;width:100%;pointer-events:none;}
 .journey-cloud{position:absolute;font-size:24px;animation:cloud-move 20s linear infinite;opacity:0.7;}
 .journey-sun{position:absolute;top:8px;right:14px;font-size:28px;animation:sun-spin 10s linear infinite;}
@@ -2374,22 +2374,21 @@ function rebuildFlowers(){
   if(!flowersEl||!wrap||journeyTotal===0)return;
   flowersEl.innerHTML='';
   var wrapW=wrap.offsetWidth||320;
-  // Path goes from 8% to 85% of wrap width
-  var startPx=Math.round(0.08*wrapW);
-  var endPx=Math.round(0.85*wrapW);
-  // Character end position based on correct answers
-  var charEndPx=startPx+Math.round((journeyCorrect/journeyTotal)*(endPx-startPx));
-  // Dense flowers from start to charEndPx
+  var startPx=Math.round(0.09*wrapW); // just after flag
+  var endPx=Math.round(0.83*wrapW);   // just before goal
+  var charEndPx=journeyCorrect===0?startPx:startPx+Math.round((journeyCorrect/journeyTotal)*(endPx-startPx));
+  // Dense random flowers from startPx to charEndPx
   if(journeyCorrect>0){
-    var spacing=12; // px between flowers
-    var numFlowers=Math.floor((charEndPx-startPx)/spacing)+1;
-    for(var fi=0;fi<numFlowers;fi++){
-      var fX=startPx+(fi*spacing);
-      if(fX>charEndPx)break;
+    var spacing=11;
+    var fi=0;
+    for(var fX=startPx;fX<=charEndPx;fX+=spacing,fi++){
       var span=document.createElement('span');
       span.className='journey-flower';
       span.style.left=fX+'px';
-      span.textContent=flowers[fi%flowers.length];
+      // Stagger animation so they don't all pop at same time
+      span.style.animationDelay=(fi*0.03)+'s';
+      // Random flower from array
+      span.textContent=flowers[Math.floor(Math.random()*flowers.length)];
       flowersEl.appendChild(span);
     }
   }
