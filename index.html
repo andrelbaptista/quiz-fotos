@@ -1794,13 +1794,13 @@ function setQType(type){
   if(altsHeader)altsHeader.style.display=showAlts?'flex':'none';
   var altsContainer=document.getElementById('alts-container');
   if(altsContainer)altsContainer.style.display=showAlts?'block':'none';
-  if(showAlts&&currentAlts.length===0){addAlt();addAlt();}
+  if(showAlts&&currentAlts.length===0&&type!=='money'){addAlt();addAlt();}
   else if(showAlts)renderAlts();
   // Type-specific previews
   if(type==='clock')setTimeout(updateClockPreview,50);
   if(type==='period')setTimeout(updatePeriodPreview,50);
   if(type==='shapes')setTimeout(updateShapesPreview,50);
-  if(type==='money')setTimeout(function(){updateMoneyPreview();buildMoneyAdminGrids();},50);
+  if(type==='money')setTimeout(function(){updateMoneyPreview();buildMoneyAdminGrids();if(currentAlts.length===0)moneyFillAlts(true);},50);
   if(type==='words'){
     setTimeout(updateWordsPreview,50);
     var wt=document.getElementById('words-text');
@@ -2586,6 +2586,8 @@ function buildMoneyAdminGrids(){
         if(idx2>=0){
           currentAlts.splice(idx2,1);
         } else {
+          // Remove any empty placeholder alts first
+          currentAlts=currentAlts.filter(function(a){return a.text&&a.text.trim()!=='';});
           var mv=parseInt(document.getElementById('money-value').value)||10;
           currentAlts.push({text:txt,correct:(val===mv)});
         }
@@ -2604,6 +2606,7 @@ function moneyFillAlts(silent){
   for(var i=dist.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=dist[i];dist[i]=dist[j];dist[j]=t;}
   var ch=dist.slice(0,3).concat([val]);
   for(var i=ch.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=ch[i];ch[i]=ch[j];ch[j]=t;}
+  // Always start fresh — no empty placeholders
   currentAlts=ch.map(function(n){return{text:'R$ '+n+',00',correct:(n===val)};});
   renderAlts();buildMoneyAdminGrids();
   if(!silent)toast('Alternativas preenchidas!');
@@ -3810,27 +3813,31 @@ function buildResults(){
       +'<span style="display:flex;align-items:center;gap:6px;">'+attStr+' '+icon+'</span>'
       +'</div>';
 
-    // Visual display per question type
+    // Visual display per question type — show what the player saw
     var qtype=q.qtype||'photo';
-    if(q.photo&&['photo','doc','puzzle'].indexOf(qtype)!==-1){
-      html+='<div style="text-align:center;margin-bottom:8px;"><img src="'+q.photo+'" style="max-width:200px;max-height:140px;border-radius:8px;object-fit:contain;"></div>';
-    } else if(qtype==='clock'||qtype==='period'){
+    if(qtype==='clock'||(qtype==='period'&&q.clockHour!==undefined)){
       var rh=q.clockHour||10, rm=q.clockMinute||0;
       var mode=q.clockMode||'analog';
       if(mode==='analog'){
-        html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawClock(rh,rm,120)+'</div>';
+        html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawClock(rh,rm,140)+'</div>';
       } else {
-        html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawDigitalClock(rh,rm)+'</div>';
+        html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawDigitalClock(rh,rm)+'</div>';
       }
+    } else if(qtype==='period'){
+      var rh2=q.clockHour||10, rm2=q.clockMinute||0;
+      html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawDigitalClock(rh2,rm2)+'</div>';
     } else if(qtype==='money'){
       var mv=q.moneyValue||10;
-      html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawMoneyNote(mv,q.moneyCurrency||'BRL',true)+'</div>';
+      html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawMoneyNote(mv,q.moneyCurrency||'BRL',true)+'</div>';
     } else if(qtype==='shapes'){
-      html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',80)+'</div>';
+      html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',100)+'</div>';
     } else if(qtype==='number'&&q.num1!==undefined){
-      html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:8px;">'+q.num1+' ou '+q.num2+'</div>';
+      html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:10px;">'+q.num1+' ou '+q.num2+'</div>';
     } else if(qtype==='words'&&q.wordsText){
-      html+='<div style="text-align:center;font-size:32px;font-weight:900;margin-bottom:8px;color:var(--blue);">'+esc(q.wordsText)+'</div>';
+      html+='<div style="text-align:center;font-size:32px;font-weight:900;margin-bottom:10px;color:var(--blue);">'+esc(q.wordsText)+'</div>';
+    } else if(q.photo&&typeof q.photo==='string'&&q.photo.length>10){
+      // photo, doc, puzzle, compare — show the stored image
+      html+='<div style="text-align:center;margin-bottom:10px;"><img src="'+q.photo+'" style="max-width:100%;max-height:220px;border-radius:8px;object-fit:contain;box-shadow:0 2px 8px rgba(0,0,0,0.2);"></div>';
     }
 
     // Alternatives (only if question has alts)
