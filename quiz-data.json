@@ -430,7 +430,7 @@
           "text": "asdfasdasddas",
           "cfg": {
             "attempts": 4,
-            "result": "review",
+            "result": "score",
             "voiceRead": false,
             "voiceAnswer": false
           },
