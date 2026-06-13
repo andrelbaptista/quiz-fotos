@@ -191,8 +191,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 /* QUESTION TYPES */
 .clock-wrap{display:flex;justify-content:center;margin-bottom:16px;}
 svg.clock-face{filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));}
-.period-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-.period-btn{border-radius:var(--radius-sm);border:2px solid var(--border2);background:var(--surface);padding:14px 8px;text-align:center;cursor:pointer;transition:all 0.15s;-webkit-appearance:none;}
+.period-grid{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.period-btn{border-radius:var(--radius-sm);border:2px solid var(--border2);background:var(--surface);padding:14px 18px;text-align:left;cursor:pointer;transition:all 0.15s;-webkit-appearance:none;display:flex;align-items:center;width:100%;font-size:16px;font-weight:600;color:var(--text);}
 .period-btn:active{transform:scale(0.97);}
 .period-btn.selected{border-color:var(--blue);background:var(--blue-bg);}
 .period-btn.correct{border-color:var(--green);background:var(--green-bg);}
@@ -1829,8 +1829,8 @@ function updateClockPreview(){
     if(help)help.textContent='A jogadora verá o display digital e escolherá o horário correto.';
     if(minWrap)minWrap.style.display='block';
   } else if(mode==='period'){
-    wrap.innerHTML=drawClock(h,0,size);
-    if(help)help.textContent='A jogadora verá o relógio e escolherá: Madrugada, Manhã, Tarde ou Noite.';
+    wrap.innerHTML=drawDigitalClock(h,0);
+    if(help)help.textContent='A jogadora verá o relógio digital e escolherá: Madrugada, Manhã, Tarde ou Noite.';
     if(minWrap)minWrap.style.display='none';
   }
 }
@@ -2740,15 +2740,16 @@ var MONEY_IMGS={
   200:null
 };
 
-function drawMoneyNote(value, currency){
+function drawMoneyNote(value, currency, showLabel){
   currency=currency||'BRL';
+  if(showLabel===undefined)showLabel=true;
   var imgSrc=MONEY_IMGS[parseInt(value)];
   if(imgSrc){
     var sym={BRL:'R$',USD:'US$',EUR:'€'}[currency]||'R$';
     var label=sym+' '+value+',00';
     return '<div class="money-note-real" style="display:inline-block;text-align:center;">'+
       '<img src="'+imgSrc+'" alt="'+label+'" style="max-width:220px;width:100%;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.3);display:block;">'+
-      '<div style="font-size:13px;font-weight:700;color:var(--text2);margin-top:4px;">'+label+'</div>'+
+      (showLabel?'<div style="font-size:13px;font-weight:700;color:var(--text2);margin-top:4px;">'+label+'</div>':'')+
     '</div>';
   }
   // Fallback: drawn note for values without photo (e.g. 200)
@@ -3369,8 +3370,6 @@ function renderQuizQ(){
         if(bc>=5){clearInterval(blinkInterval);setTimeout(function(){hb.style.animation='';},600);}
       },550);
     }
-    // Speak instructions for this question type
-    speakQuizHelp();
   },200);
   // Voice + nav run after render
   setTimeout(function(){
@@ -3441,23 +3440,20 @@ function renderPeriodQuestion(q){
   var locked=answers[currentQIdx].chosen!==-1&&(quizCfg.attempts===0||answers[currentQIdx].attempts>=quizCfg.attempts||answers[currentQIdx].correct);
   var correctPeriod=q.correctPeriod||'manha';
 
-  // Show analog clock with configured hour in display area
+  // Show DIGITAL clock with configured hour in display area (no period label)
   var hour=q.clockHour||q.hour||10;
   var minute=q.clockMinute||q.minute||0;
-  var iw=window.innerWidth||390;
-  var size=Math.min(220,iw*0.55);
-  if(display)display.innerHTML='<div class="clock-wrap" style="display:flex;justify-content:center;margin-bottom:8px;">'+drawClock(hour,minute,size)+'</div>';
+  if(display)display.innerHTML='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawDigitalClock(hour,minute)+'</div>';
 
   ae.innerHTML='';
   var grid=document.createElement('div');grid.className='period-grid';
-  periods.forEach(function(p){
+  periods.forEach(function(p,pi){
     var btn=document.createElement('button');
     var cls='period-btn';
     if(locked){if(p===correctPeriod)cls+=' correct';else if(p===q._chosen&&p!==correctPeriod)cls+=' wrong';}
     btn.className=cls;
     if(locked)btn.disabled=true;
-    // Text only — no emoji
-    btn.innerHTML='<span class="period-label">'+getPeriodLabel(p)+'</span>';
+    btn.innerHTML='<span class="alt-key">'+LETTERS[pi]+'</span>'+getPeriodLabel(p);
     btn.onclick=function(){selectPeriod(p);};
     grid.appendChild(btn);
   });
@@ -3588,7 +3584,7 @@ function renderQuizAlts(locked){
     if(locked)btn.disabled=true;
     if(isMoney){
       var numVal=parseFloat(String(alt.text).replace(/[^\d,.]/g,'').replace(',','.'));
-      var noteHtml=isNaN(numVal)?esc(alt.text):drawMoneyNote(numVal,'BRL');
+      var noteHtml=isNaN(numVal)?esc(alt.text):drawMoneyNote(numVal,'BRL',false);
       btn.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 12px;height:auto;';
       btn.innerHTML='<span class="alt-key">'+LETTERS[i]+'</span><div style="flex:1;">'+noteHtml+'</div>';
     } else {
@@ -3939,16 +3935,11 @@ function renderTypeToCanvas(q, callback){
       ctx.textAlign='center';
       var hh=String(ch).padStart(2,'0'), mm=String(cm).padStart(2,'0');
       ctx.fillText(hh+':'+mm,320,268);
-      ctx.fillStyle='#ffffff';
-      ctx.font='bold 26px Arial';
-      var per=ch<12?'🌅 Manhã':ch<18?'☀️ Tarde':'🌙 Noite';
-      ctx.fillText(per,320,314);
       finish();
     } else if(cmode==='period'){
       // PERÍODO: digital 24h + label do período
       var hh24=String(ch).padStart(2,'0'),mm24=String(cm).padStart(2,'0');
       var pLabel=ch>=0&&ch<6?'Madrugada':ch<12?'Manhã':ch<18?'Tarde':'Noite';
-      var pEmoji=ch<6?'🌙':ch<12?'🌅':ch<18?'☀️':'🌆';
       var pColor=ch<6?'#4a0e8f':ch<12?'#FF8C00':ch<18?'#1d9e75':'#6d28d9';
       // dark bg
       ctx.fillStyle='#0f0f1e';ctx.fillRect(0,0,640,480);
@@ -3963,7 +3954,7 @@ function renderTypeToCanvas(q, callback){
       ctx.fillText(hh24+':'+mm24,320,230);
       // period label
       ctx.font='bold 38px Arial';ctx.fillStyle=pColor;
-      ctx.fillText(pEmoji+' '+pLabel,320,340);
+      ctx.fillText(pLabel,320,340);
       finish();
     } else {
       // ANALÓGICO
