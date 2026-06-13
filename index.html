@@ -468,14 +468,24 @@ svg.hist-chart{display:block;max-width:100%;}
           <p style="font-size:12px;color:var(--text2);" id="clock-help">As alternativas abaixo serão os horários para escolher.</p>
         </div>
         <div id="config-period" style="display:none;">
-          <div class="field"><label>Período correto</label>
-            <select id="period-correct">
-              <option value="manha">🌅 Manhã</option>
-              <option value="tarde">☀️ Tarde</option>
-              <option value="noite">🌙 Noite</option>
-            </select>
+          <div class="row" style="gap:12px;">
+            <div class="field" style="flex:1;"><label>Período correto</label>
+              <select id="period-correct">
+                <option value="madrugada">Madrugada (0h–5h)</option>
+                <option value="manha">Manhã (6h–11h)</option>
+                <option value="tarde">Tarde (12h–17h)</option>
+                <option value="noite">Noite (18h–23h)</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;"><label>Hora no relógio</label>
+              <input type="number" id="period-hour" min="0" max="23" value="10" oninput="updatePeriodPreview()">
+            </div>
+            <div class="field" style="flex:1;"><label>Minutos</label>
+              <input type="number" id="period-minute" min="0" max="59" value="0" oninput="updatePeriodPreview()">
+            </div>
           </div>
-          <p style="font-size:12px;color:var(--text2);">A jogadora escolherá entre Manhã, Tarde e Noite.</p>
+          <div id="period-preview-wrap" style="display:flex;justify-content:center;margin-bottom:8px;"></div>
+          <p style="font-size:12px;color:var(--text2);">A jogadora vê o relógio e escolhe: Madrugada, Manhã, Tarde ou Noite.</p>
         </div>
         <div id="config-number" style="display:none;">
           <div class="field"><label>Modo numérico</label>
@@ -1637,6 +1647,9 @@ function editQuestion(i){
       updateClockPreview();
     } else if(qtype==='period'){
       var pc=document.getElementById('period-correct');if(pc)pc.value=q.correctPeriod||'manha';
+      var ph=document.getElementById('period-hour');if(ph)ph.value=q.clockHour||10;
+      var pm=document.getElementById('period-minute');if(pm)pm.value=q.clockMinute||0;
+      updatePeriodPreview();
     } else if(qtype==='number'){
       var nm=document.getElementById('number-mode');if(nm){nm.value=q.numberMode||'compare';updateNumberConfig();}
       var nop=document.getElementById('num-op');if(nop)nop.value=q.numOp||'maior';
@@ -1788,6 +1801,7 @@ function setQType(type){
   else if(showAlts)renderAlts();
   // Type-specific previews
   if(type==='clock')setTimeout(updateClockPreview,50);
+  if(type==='period')setTimeout(updatePeriodPreview,50);
   if(type==='shapes')setTimeout(updateShapesPreview,50);
   if(type==='money')setTimeout(function(){updateMoneyPreview();updateMoneyNotePreview();},50);
   if(type==='words'){
@@ -2332,7 +2346,11 @@ function saveQuestion(){
   };
   // Type-specific config
   if(qtype==='clock'){q.clockHour=parseInt(document.getElementById('clock-hour').value)||10;q.clockMinute=parseInt(document.getElementById('clock-minute').value)||0;q.clockMode=document.getElementById('clock-mode')?document.getElementById('clock-mode').value:'analog';}
-  if(qtype==='period'){q.correctPeriod=document.getElementById('period-correct').value||'manha';}
+  if(qtype==='period'){
+    q.correctPeriod=document.getElementById('period-correct').value||'manha';
+    q.clockHour=parseInt(document.getElementById('period-hour')?document.getElementById('period-hour').value:10)||10;
+    q.clockMinute=parseInt(document.getElementById('period-minute')?document.getElementById('period-minute').value:0)||0;
+  }
   if(qtype==='number'){
     var nm=document.getElementById('number-mode')?document.getElementById('number-mode').value:'compare';
     q.numberMode=nm;
@@ -2477,11 +2495,8 @@ function drawClock(hour, minute, size){
 function drawDigitalClock(hour, minute){
   var h=String(hour).padStart(2,'0');
   var m=String(minute).padStart(2,'0');
-  var period=hour<12?'manhã':hour<18?'tarde':'noite';
-  var periodEmoji=hour<12?'🌅':hour<18?'☀️':'🌙';
   return'<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#1a1a2e;border-radius:16px;margin:0 auto;max-width:280px;">'+
     '<div style="font-size:72px;font-weight:900;color:#00d4ff;font-family:monospace;letter-spacing:8px;text-shadow:0 0 20px #00d4ff88;">'+h+':'+m+'</div>'+
-    '<div style="font-size:20px;color:#fff;margin-top:8px;">'+periodEmoji+' '+period.charAt(0).toUpperCase()+period.slice(1)+'</div>'+
   '</div>';
 }
 
@@ -2558,6 +2573,13 @@ function moneyFillAlts(silent){
   });
   renderAlts();
   if(!silent)toast('Alternativas preenchidas com notas brasileiras!');
+}
+
+function updatePeriodPreview(){
+  var h=parseInt(document.getElementById('period-hour')?document.getElementById('period-hour').value:10)||10;
+  var m=parseInt(document.getElementById('period-minute')?document.getElementById('period-minute').value:0)||0;
+  var wrap=document.getElementById('period-preview-wrap');
+  if(wrap){var sz=Math.min(160,window.innerWidth*0.4);wrap.innerHTML='<div class="clock-wrap">'+drawClock(h,m,sz)+'</div>';}
 }
 
 function updateMoneyConfig(){
@@ -3306,7 +3328,7 @@ function renderQuizQ(){
     var qtype2=q.qtype||'photo';
     console.log('doRender: hasP='+hasP+' qtype='+qtype2+' alts='+(q.alts?q.alts.length:'none'));
     // Types that need special rendering even when photo exists
-    var specialTypes=['puzzle','period','number','shapes','words'];
+    var specialTypes=['puzzle','period','number','shapes','words','clock'];
     if(hasP&&specialTypes.indexOf(qtype)===-1){
       // Photo already displayed - just show alternativas
       if(q.alts&&q.alts.length)renderQuizAlts(answers[currentQIdx].chosen!==-1);
@@ -3391,7 +3413,10 @@ function renderClockQuestion(q){
   } else if(mode==='digital'){
     clockHtml='<div style="display:flex;justify-content:center;">'+drawDigitalClock(q.clockHour||12,q.clockMinute||0)+'</div>';
   } else if(mode==='period'){
-    clockHtml='<div style="display:flex;justify-content:center;">'+drawClock(q.clockHour||10,0,size)+'</div>';
+    // Delegate entirely to renderPeriodQuestion (it draws the clock itself)
+    var correctPer=q.clockHour<12?'manha':q.clockHour<18?'tarde':(q.clockHour<24?'noite':'madrugada');
+    renderPeriodQuestion({correctPeriod:correctPer,clockHour:q.clockHour||10,clockMinute:q.clockMinute||0,_chosen:q._chosen});
+    return;
   }
   if(display)display.innerHTML=clockHtml;
   ae.innerHTML='';
@@ -3403,10 +3428,19 @@ function renderClockQuestion(q){
 }
 
 function renderPeriodQuestion(q){
+  var display=document.getElementById('quiz-type-display');
   var ae=document.getElementById('quiz-alts');
   var periods=['madrugada','manha','tarde','noite'];
   var locked=answers[currentQIdx].chosen!==-1&&(quizCfg.attempts===0||answers[currentQIdx].attempts>=quizCfg.attempts||answers[currentQIdx].correct);
   var correctPeriod=q.correctPeriod||'manha';
+
+  // Show analog clock with configured hour in display area
+  var hour=q.clockHour||q.hour||10;
+  var minute=q.clockMinute||q.minute||0;
+  var iw=window.innerWidth||390;
+  var size=Math.min(220,iw*0.55);
+  if(display)display.innerHTML='<div class="clock-wrap" style="display:flex;justify-content:center;margin-bottom:8px;">'+drawClock(hour,minute,size)+'</div>';
+
   ae.innerHTML='';
   var grid=document.createElement('div');grid.className='period-grid';
   periods.forEach(function(p){
@@ -3415,7 +3449,8 @@ function renderPeriodQuestion(q){
     if(locked){if(p===correctPeriod)cls+=' correct';else if(p===q._chosen&&p!==correctPeriod)cls+=' wrong';}
     btn.className=cls;
     if(locked)btn.disabled=true;
-    btn.innerHTML='<span class="period-icon">'+getPeriodEmoji(p)+'</span><span class="period-label">'+getPeriodLabel(p)+'</span>';
+    // Text only — no emoji
+    btn.innerHTML='<span class="period-label">'+getPeriodLabel(p)+'</span>';
     btn.onclick=function(){selectPeriod(p);};
     grid.appendChild(btn);
   });
