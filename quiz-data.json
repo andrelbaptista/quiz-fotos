@@ -404,7 +404,18 @@
             "result": "score"
           }
         }
-      ]
+      ],
+      "results": {
+        "master": [
+          {
+            "date": "2026-06-13T14:12:31.840Z",
+            "correct": 16,
+            "total": 16,
+            "pct": 100,
+            "username": "master"
+          }
+        ]
+      }
     },
     {
       "id": "1781359610254",
