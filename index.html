@@ -1902,12 +1902,16 @@ function renderPuzzleQuestion(q){
       var pc=document.createElement('div');
       pc.style.cssText='width:'+pw+'px;height:'+ph+'px;border-radius:6px;overflow:hidden;cursor:grab;border:2px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;flex-shrink:0;';
       pc.dataset.pieceIdx=mi;
-      pc.dataset.rotation='0';
+      // Random initial rotation: 0, 90, 180 or 270 — but guarantee at least some pieces are rotated
+      var initRots=[0,90,180,270];
+      var initRot=initRots[Math.floor(Math.random()*4)];
+      pc.dataset.rotation=String(initRot);
       pc.draggable=true;
       var c2=document.createElement('canvas');
       var col2=mi%cols,row2=Math.floor(mi/cols);
       c2.width=pw;c2.height=ph;
       c2.getContext('2d').drawImage(img,col2*img.naturalWidth/cols,row2*img.naturalHeight/rows,img.naturalWidth/cols,img.naturalHeight/rows,0,0,pw,ph);
+      if(initRot!==0)c2.style.transform='rotate('+initRot+'deg)';
       pc.appendChild(c2);
       // Rotation label
       var rotLabel=document.createElement('div');
@@ -1977,6 +1981,14 @@ function onPieceTouchDrop(e){
 
 function placePiece(hole,piece,correct){
   if(correct){
+    // Reject if piece is not at 0° rotation
+    var rot=parseInt(piece.dataset.rotation||'0');
+    if(rot!==0){
+      shake(piece);
+      toast('Gire a peça até ficar na posição certa! (toque 2x para girar)');
+      hole.style.background='rgba(0,113,227,0.15)';
+      return;
+    }
     hole.innerHTML='';
     // Copy canvas content properly (cloneNode loses pixel data)
     var srcCanvas=piece.querySelector('canvas');
@@ -1989,9 +2001,11 @@ function placePiece(hole,piece,correct){
       dstCanvas.getContext('2d').drawImage(srcCanvas,0,0);
       hole.appendChild(dstCanvas);
     }
+    // Flash green briefly then remove border so it blends into the image
     hole.style.border='2px solid var(--green)';
     hole.style.background='transparent';
     hole.classList.remove('puzzle-hole');
+    setTimeout(function(){hole.style.border='none';},700);
     piece.remove();
     puzzleState.solved++;
     playSuccess();showEmoji('👏');
@@ -2107,7 +2121,7 @@ function showQuizHelp(){
   ].filter(Boolean).join('<br>');
   var modal=document.createElement('div');
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML='<div style="background:var(--surface1);border-radius:var(--radius);padding:24px;max-width:340px;width:90%;max-height:80vh;overflow-y:auto;"><p style="margin:0 0 16px;line-height:1.7;font-size:14px;">'+lines+'</p><button class="btn btn-primary btn-block" onclick="this.parentNode.parentNode.remove()">Entendido ✓</button></div>';
+  modal.innerHTML='<div style="background:#1c1c1e;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius);padding:24px;max-width:340px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.8);"><p style="margin:0 0 16px;line-height:1.9;font-size:15px;color:#f0f0f0;">'+lines+'</p><button class="btn btn-primary btn-block" onclick="this.parentNode.parentNode.remove()">Entendido ✓</button></div>';
   document.body.appendChild(modal);
 }
 // ── COMPARE TYPE ──
@@ -2514,9 +2528,30 @@ function updateNumberConfig(){
 function renderShapesQuestion(q){
   var display=document.getElementById('quiz-type-display');
   var ae=document.getElementById('quiz-alts');
+
+  // Show default title if question has no text
+  if(!q.text){
+    var titleBox=document.getElementById('quiz-title-box');
+    var textEl=document.getElementById('quiz-text');
+    var shapeNames={circle:'Qual é esta forma?',square:'Qual é esta forma?',triangle:'Qual é esta forma?',rectangle:'Qual é esta forma?',star:'Qual é esta forma?',heart:'Qual é esta forma?',diamond:'Qual é esta forma?',pentagon:'Qual é esta forma?',hexagon:'Qual é esta forma?'};
+    var defaultTitle=shapeNames[q.shapesMain]||'Qual é esta forma?';
+    if(titleBox&&textEl){
+      titleBox.style.display='block';
+      titleBox.className='quiz-title-box has-text';
+      window._currentSpeakText=defaultTitle;
+      textEl.innerHTML=esc(defaultTitle)+' <button class="speak-btn" onclick="speak(window._currentSpeakText)" title="Ouvir">🔊</button>';
+    }
+  }
+
+  // Draw the shape in the display area
   if(display)display.innerHTML='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',Math.min(200,window.innerWidth*0.5))+'</div>';
   ae.innerHTML='';
-  renderQuizAlts(false);
+
+  // If voiceAnswer is enabled, do NOT render the shape as clickable alternatives
+  var isVoice=q.cfg&&q.cfg.voiceAnswer;
+  if(!isVoice){
+    renderQuizAlts(false);
+  }
 }
 
 function renderWordsQuestion(q){
@@ -2683,19 +2718,73 @@ function startListening(onResult){
 }
 
 function handleVoiceAnswer(spokenText, q){
-  if(!q.alts)return;
   var spoken=spokenText.toLowerCase().trim();
+  var qtype=q.qtype||'photo';
+
+  // Number comparison: match spoken number to n1 or n2
+  if(qtype==='number'){
+    var n1=q.num1||1, n2=q.num2||3;
+    var s1=String(n1), s2=String(n2);
+    // Also accept spoken words for small numbers
+    var numWords={'um':1,'uma':1,'dois':2,'duas':2,'três':3,'tres':3,'quatro':4,'cinco':5,'seis':6,'sete':7,'oito':8,'nove':9,'dez':10};
+    var spokenNum=numWords[spoken]||parseInt(spoken);
+    if(!isNaN(spokenNum)){
+      if(spokenNum===n1){selectNumber(0,n1,n2);return;}
+      if(spokenNum===n2){selectNumber(1,n1,n2);return;}
+    }
+    if(spoken.includes(s1)&&!spoken.includes(s2)){selectNumber(0,n1,n2);return;}
+    if(spoken.includes(s2)&&!spoken.includes(s1)){selectNumber(1,n1,n2);return;}
+    toast('Não entendi "'+spokenText+'". Diga o número: '+n1+' ou '+n2+'.');
+    return;
+  }
+
+  // Shapes: match spoken shape name
+  if(qtype==='shapes'){
+    var shapeMap={
+      'círculo':'circle','circulo':'circle','bola':'circle','redondo':'circle','redonda':'circle',
+      'quadrado':'square','quadrada':'square',
+      'triângulo':'triangle','triangulo':'triangle','triangular':'triangle',
+      'retângulo':'rectangle','retangulo':'rectangle',
+      'estrela':'star',
+      'coração':'heart','coracao':'heart',
+      'diamante':'diamond','losango':'diamond',
+      'pentágono':'pentagon','pentagono':'pentagon',
+      'hexágono':'hexagon','hexagono':'hexagon'
+    };
+    var matchedShape=null;
+    Object.keys(shapeMap).forEach(function(word){
+      if(spoken.includes(word))matchedShape=shapeMap[word];
+    });
+    if(matchedShape){
+      // Find the alt that matches this shape name or the correct answer
+      if(q.alts&&q.alts.length){
+        var idx=q.alts.findIndex(function(a){return a.correct;});
+        var correctShape=q.shapesMain||'';
+        if(matchedShape===correctShape){selectAlt(idx);return;}
+        // Try to find any alt matching what was said
+        var altIdx=q.alts.findIndex(function(a){
+          var at=a.text.toLowerCase();
+          return at===spoken||Object.keys(shapeMap).some(function(w){return spoken.includes(w)&&shapeMap[w]===correctShape&&at.includes(w);});
+        });
+        if(altIdx>=0){selectAlt(altIdx);return;}
+        // If wrong shape said, still register wrong answer
+        selectAlt(idx===0?1:0);
+        return;
+      }
+    }
+    toast('Não entendi "'+spokenText+'". Diga o nome da forma.');
+    return;
+  }
+
+  // Default: match against q.alts text
+  if(!q.alts||!q.alts.length){toast('Não entendi: "'+spokenText+'". Tente novamente.');return;}
   var correct=q.alts.find(function(a){return a.correct;});
   if(!correct)return;
   var correctText=correct.text.toLowerCase();
-  // Check if spoken matches correct answer
-  var isMatch=spoken.includes(correctText)||correctText.includes(spoken)||
-    levenshtein(spoken,correctText)<3;
-  // Find index
+  var isMatch=spoken.includes(correctText)||correctText.includes(spoken)||levenshtein(spoken,correctText)<3;
   var ci=q.alts.findIndex(function(a){return a.correct;});
   if(isMatch){selectAlt(ci);}
   else{
-    // Try to match any alt
     var matched=q.alts.findIndex(function(a){return spoken.includes(a.text.toLowerCase())||a.text.toLowerCase().includes(spoken);});
     if(matched>=0)selectAlt(matched);
     else{toast('Não entendi: "'+spokenText+'". Tente novamente ou toque na resposta.');}
@@ -3245,20 +3334,37 @@ function renderNumberQuestion(q){
   var correctIdx=n1>n2?0:1;
   ae.innerHTML='';
   if(display)display.innerHTML='';
-  var label=document.createElement('div');
-  label.style.cssText='text-align:center;margin-bottom:10px;font-size:16px;color:var(--text2);font-weight:700;';
-  label.textContent='Qual número é MAIOR?';
-  var wrap=document.createElement('div');wrap.className='number-compare';
+
+  // Big equal-size numbers in display area
+  var wrap=document.createElement('div');
+  wrap.className='number-compare';
   [n1,n2].forEach(function(n,i){
     var div=document.createElement('div');
-    div.className='number-big'+(locked?(correctIdx===i?' correct':' wrong'):'');
+    div.className='number-big';
     div.textContent=n;
-    if(!locked)div.onclick=function(){selectNumber(i,n1,n2);};
     wrap.appendChild(div);
     if(i===0){var vs=document.createElement('div');vs.className='number-vs';vs.textContent='ou';wrap.appendChild(vs);}
   });
-  if(display){display.appendChild(label);display.appendChild(wrap);}
-  else{ae.appendChild(label);ae.appendChild(wrap);}
+  if(display)display.appendChild(wrap);
+
+  // Title label above list buttons
+  var label=document.createElement('div');
+  label.style.cssText='text-align:center;margin:8px 0 10px;font-size:15px;color:var(--text2);font-weight:700;';
+  var opLabels={maior:'Qual número é MAIOR?',menor:'Qual número é MENOR?',soma:'Qual é a soma?',diferenca:'Qual é a diferença?'};
+  label.textContent=opLabels[q.numOp||'maior']||'Qual número é MAIOR?';
+  ae.appendChild(label);
+
+  // List-style answer buttons (same as other question types)
+  [n1,n2].forEach(function(n,i){
+    var cls='alt-btn';
+    if(locked){if(i===correctIdx)cls+=' correct';else cls+=' wrong';}
+    var btn=document.createElement('button');
+    btn.className=cls;
+    if(locked)btn.disabled=true;
+    btn.innerHTML='<span class="alt-key">'+LETTERS[i]+'</span>'+n;
+    btn.onclick=locked?null:function(){selectNumber(i,n1,n2);};
+    ae.appendChild(btn);
+  });
 }
 
 function selectNumber(chosen,n1,n2){
