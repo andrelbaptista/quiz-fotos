@@ -3408,18 +3408,47 @@ function selectAlt(i){
 }
 function goToPrevQuestion(){
   if(currentQIdx<=0)return;
-  // Clear current question answer
+  // Clear CURRENT question
   var wasCorrect=answers[currentQIdx].correct;
   var wasSkipped=answers[currentQIdx].skipped;
   answers[currentQIdx]={chosen:-1,attempts:0,correct:false,skipped:false};
-  // Adjust journey
-  if(wasCorrect&&journeyCorrect>0){journeyCorrect--;journeyCharScale=Math.max(1.0,journeyCharScale-0.12);}
+  if(wasCorrect&&journeyCorrect>0){journeyCorrect--;journeyCharScale=Math.max(1.0,(journeyCharScale||1)-0.12);}
   if(wasSkipped&&journeySkipCount>0){journeySkipCount--;}
+
+  // Go back
   currentQIdx--;
-  currentAttempts=answers[currentQIdx].attempts||0;
+
+  // Also clear the PREVIOUS question so it opens fresh
+  var prevWasCorrect=answers[currentQIdx].correct;
+  var prevWasSkipped=answers[currentQIdx].skipped;
+  answers[currentQIdx]={chosen:-1,attempts:0,correct:false,skipped:false};
+  if(prevWasCorrect&&journeyCorrect>0){journeyCorrect--;journeyCharScale=Math.max(1.0,(journeyCharScale||1)-0.12);}
+  if(prevWasSkipped&&journeySkipCount>0){journeySkipCount--;}
+
+  currentAttempts=0;
+
+  // Reset arrival state if was showing
+  resetJourneyArrival();
+
   var prevBtn=document.getElementById('btn-prev-q');
   if(prevBtn)prevBtn.style.display=currentQIdx>0?'inline-flex':'none';
+
+  // Rebuild journey to reflect new state
   rebuildFlowers();
+
+  // Update character position
+  var wrap=document.getElementById('journey-wrap');
+  var wrapW=wrap?wrap.offsetWidth||320:320;
+  var startPx=Math.round(0.08*wrapW);
+  var endPx=Math.round(0.85*wrapW);
+  var charPx=journeyCorrect===0?startPx:startPx+Math.round((journeyCorrect/journeyTotal)*(endPx-startPx));
+  var ch=document.getElementById('journey-char');
+  if(ch){
+    ch.style.left=(charPx/wrapW*100)+'%';
+    ch.style.fontSize=Math.round(30*(journeyCharScale||1))+'px';
+  }
+  setCharState('idle');
+
   renderQuizQ();
 }
 function confirmAbort(){showModal('<h2>Encerrar quiz?</h2><p>O progresso será perdido.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="closeModal();goHome()">Encerrar</button><button class="btn btn-sm" onclick="closeModal()">Continuar</button></div>');}
@@ -3466,20 +3495,19 @@ function recordResult(quizId, correct, total){
 }
 
 function syncHistoryToGitHub(quizId, entries){
-  if(!hasCfg())return;
-  // Merge into quizzes results field
-  var quiz=getQuiz(quizId);
-  if(!quiz)return;
-  if(!quiz.results)quiz.results={};
-  var user=currentUser?currentUser.username:'?';
-  if(!quiz.results[user])quiz.results[user]=[];
-  // Add only the latest entry
-  var last=entries[entries.length-1];
-  quiz.results[user].push(last);
-  if(quiz.results[user].length>50)quiz.results[user]=quiz.results[user].slice(-50);
-  saveLS();
-  // Auto sync
-  setTimeout(function(){syncToGitHub();},800);
+  try{
+    if(!hasCfg())return;
+    var quiz=getQuiz(quizId);
+    if(!quiz)return;
+    if(!quiz.results)quiz.results={};
+    var user=currentUser?currentUser.username:'?';
+    if(!quiz.results[user])quiz.results[user]=[];
+    var last=entries[entries.length-1];
+    quiz.results[user].push(last);
+    if(quiz.results[user].length>50)quiz.results[user]=quiz.results[user].slice(-50);
+    saveLS();
+    setTimeout(function(){syncToGitHub();},800);
+  }catch(e){console.log('History sync error:',e.message);}
 }
 
 function showHistory(quizId){
@@ -3924,11 +3952,21 @@ function dismissInstallBanner(){
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js')
     .then(function(reg){console.log('SW registered');})
-    .catch(function(err){
-      // sw.js missing is fine - app works without it
-      console.log('SW not available (offline mode disabled)');
+    .catch(function(){
+      console.log('SW not available');
     });
 }
+// Suppress unhandled promise rejections from browser extensions
+window.addEventListener('unhandledrejection',function(e){
+  var msg=e.reason&&e.reason.message||String(e.reason||'');
+  // Only suppress known extension/browser errors
+  if(msg.indexOf('message port closed')!==-1||
+     msg.indexOf('listener indicated')!==-1||
+     msg.indexOf('addAll')!==-1||
+     msg.indexOf('Cache')!==-1){
+    e.preventDefault();
+  }
+});
 (async function(){
   await initUsers();
   loadLS();
