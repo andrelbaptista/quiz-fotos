@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="app-version" content="2.7">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -3419,9 +3420,10 @@ function renderClockQuestion(q){
   } else if(mode==='digital'){
     clockHtml='<div style="display:flex;justify-content:center;">'+drawDigitalClock(q.clockHour||12,q.clockMinute||0)+'</div>';
   } else if(mode==='period'){
-    // Delegate entirely to renderPeriodQuestion (it draws the clock itself)
     var correctPer=q.clockHour<12?'manha':q.clockHour<18?'tarde':(q.clockHour<24?'noite':'madrugada');
-    renderPeriodQuestion({correctPeriod:correctPer,clockHour:q.clockHour||10,clockMinute:q.clockMinute||0,_chosen:q._chosen});
+    // Pass the full question object so renderPeriodQuestion can access q.alts, clockHour, etc.
+    var periodQ=Object.assign({},q,{correctPeriod:q.correctPeriod||correctPer});
+    renderPeriodQuestion(periodQ);
     return;
   }
   if(display)display.innerHTML=clockHtml;
@@ -3436,17 +3438,25 @@ function renderClockQuestion(q){
 function renderPeriodQuestion(q){
   var display=document.getElementById('quiz-type-display');
   var ae=document.getElementById('quiz-alts');
-  var periods=['madrugada','manha','tarde','noite'];
-  var locked=answers[currentQIdx].chosen!==-1&&(quizCfg.attempts===0||answers[currentQIdx].attempts>=quizCfg.attempts||answers[currentQIdx].correct);
-  var correctPeriod=q.correctPeriod||'manha';
 
-  // Show DIGITAL clock with configured hour in display area (no period label)
+  // Show DIGITAL clock
   var hour=q.clockHour||q.hour||10;
   var minute=q.clockMinute||q.minute||0;
-  if(display)display.innerHTML='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawDigitalClock(hour,minute)+'</div>';
+  if(display)display.innerHTML='<div style="display:flex;justify-content:center;margin-bottom:12px;">'+drawDigitalClock(hour,minute)+'</div>';
+
+  var correctPeriod=q.correctPeriod||'manha';
+  var locked=answers[currentQIdx].chosen!==-1&&(quizCfg.attempts===0||answers[currentQIdx].attempts>=quizCfg.attempts||answers[currentQIdx].correct);
 
   ae.innerHTML='';
-  var grid=document.createElement('div');grid.className='period-grid';
+
+  // If question has explicit alts (e.g. only Manhã/Tarde), use them via renderQuizAlts
+  if(q.alts&&q.alts.length){
+    renderQuizAlts(locked);
+    return;
+  }
+
+  // Otherwise show the 4 fixed period buttons
+  var periods=['madrugada','manha','tarde','noite'];
   periods.forEach(function(p,pi){
     var btn=document.createElement('button');
     var cls='period-btn';
@@ -3455,12 +3465,12 @@ function renderPeriodQuestion(q){
     if(locked)btn.disabled=true;
     btn.innerHTML='<span class="alt-key">'+LETTERS[pi]+'</span>'+getPeriodLabel(p);
     btn.onclick=function(){selectPeriod(p);};
-    grid.appendChild(btn);
+    ae.appendChild(btn);
   });
-  ae.appendChild(grid);
   if(!locked)setTimeout(function(){
-    var btns=document.querySelectorAll('.period-btn:not([disabled])');
-    btns.forEach(function(el,i){setTimeout(function(){blinkEl(el,'attention',3);},i*100);});
+    document.querySelectorAll('.period-btn:not([disabled])').forEach(function(el,i){
+      setTimeout(function(){blinkEl(el,'attention',3);},i*100);
+    });
   },300);
 }
 
@@ -4235,7 +4245,10 @@ function dismissInstallBanner(){
 /* ── INIT ── */
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js')
-    .then(function(reg){console.log('SW registered');})
+    .then(function(reg){
+      console.log('SW registered');
+      reg.update(); // Always check for SW updates
+    })
     .catch(function(){
       console.log('SW not available');
     });
