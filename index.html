@@ -3616,10 +3616,10 @@ function renderNumberQuestion(q){
   [n1,n2].forEach(function(n,i){
     var div=document.createElement('div');
     // Equal fixed font size regardless of value, no click handler
-    div.style.cssText='font-size:80px;font-weight:900;color:var(--text);line-height:1;padding:16px 24px;text-align:center;min-width:80px;';
+    div.style.cssText='font-size:80px;font-weight:900;color:var(--text);line-height:1;padding:16px 40px;text-align:center;min-width:80px;';
     div.textContent=n;
     wrap.appendChild(div);
-    if(i===0){var vs=document.createElement('div');vs.className='number-vs';vs.textContent='ou';wrap.appendChild(vs);}
+    // No 'ou' separator in visual display — numbers shown side by side cleanly
   });
   if(display)display.appendChild(wrap);
 
@@ -3637,13 +3637,45 @@ function renderNumberQuestion(q){
 }
 
 function selectNumber(chosen,n1,n2){
-  if(answers[currentQIdx].chosen!==-1)return;
+  if(answers[currentQIdx].chosen!==-1&&answers[currentQIdx].correct)return;
+  // If already answered wrong but has attempts left, allow retry
+  var cfg=getQCfg(quizOrder[currentQIdx]);
+  if(answers[currentQIdx].chosen!==-1&&!answers[currentQIdx].correct){
+    var used=answers[currentQIdx].attempts||0;
+    if(cfg.attempts>0&&used>=cfg.attempts)return; // out of attempts
+  }
   var correctIdx=n1>n2?0:1;
   var isCorrect=chosen===correctIdx;
-  handleAnswer(isCorrect);
-  renderNumberQuestion(activeQuestions[quizOrder[currentQIdx]]);
-  renderQuizNav(true);
-  setTimeout(function(){blinkNav();},500);
+  if(isCorrect){
+    answers[currentQIdx].chosen=chosen;
+    answers[currentQIdx].correct=true;
+    answers[currentQIdx].attempts=(answers[currentQIdx].attempts||0)+1;
+    playSuccess();showEmoji('✅');journeyCorrectAnswer();
+    renderNumberQuestion(activeQuestions[quizOrder[currentQIdx]]);
+    renderQuizNav(true);
+    setTimeout(function(){blinkNav();},500);
+  } else {
+    currentAttempts++;
+    answers[currentQIdx].attempts=currentAttempts;
+    if(cfg.attempts>0&&currentAttempts>=cfg.attempts){
+      // Out of attempts — lock as wrong
+      answers[currentQIdx].chosen=chosen;
+      answers[currentQIdx].correct=false;
+      playError();showEmoji('❌');journeyWrongAnswer();
+      renderNumberQuestion(activeQuestions[quizOrder[currentQIdx]]);
+      renderQuizNav(true);
+      setTimeout(function(){blinkNav();},500);
+    } else {
+      // Has attempts left — flash wrong, reset, let retry
+      answers[currentQIdx].chosen=chosen;
+      playError();showEmoji('❌');journeyWrongAnswer();
+      updateAttemptsBadge(true);
+      setTimeout(function(){
+        answers[currentQIdx].chosen=-1;
+        renderNumberQuestion(activeQuestions[quizOrder[currentQIdx]]);
+      },700);
+    }
+  }
 }
 
 function renderMoneyQuestion(q){
