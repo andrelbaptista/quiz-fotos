@@ -1898,36 +1898,66 @@ function renderPuzzleQuestion(q){
     tray.id='puzzle-tray';
     tray.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);min-height:'+(ph+24)+'px;';
     var shuffled=missingIdxs.slice().sort(function(){return Math.random()-0.5;});
-    shuffled.forEach(function(mi){
+    // Helper: draw a piece onto a canvas at a given rotation (0/90/180/270 degrees)
+    // Rotation is baked into the pixels — no CSS transform, so overflow:hidden works correctly
+    function drawPieceRotated(canvas, srcImg, col, row, cols, rows, deg){
+      var sw=srcImg.naturalWidth/cols, sh=srcImg.naturalHeight/rows;
+      var sx=col*sw, sy=row*sh;
+      var w=canvas.width, h=canvas.height;
+      var ctx=canvas.getContext('2d');
+      ctx.clearRect(0,0,w,h);
+      ctx.save();
+      ctx.translate(w/2,h/2);
+      ctx.rotate(deg*Math.PI/180);
+      // For 90/270 the source slice is drawn transposed
+      if(deg===90||deg===270){
+        ctx.drawImage(srcImg,sx,sy,sw,sh,-h/2,-w/2,h,w);
+      } else {
+        ctx.drawImage(srcImg,sx,sy,sw,sh,-w/2,-h/2,w,h);
+      }
+      ctx.restore();
+    }
+
+    // Guarantee at least one piece is rotated (not all 0) by forcing first piece
+    var usedRots=shuffled.map(function(){
+      var r=[0,90,180,270];
+      return r[Math.floor(Math.random()*4)];
+    });
+    // If all happened to be 0, force a 180 on the first one
+    if(usedRots.every(function(r){return r===0;}))usedRots[0]=180;
+
+    shuffled.forEach(function(mi, trayIdx){
+      var initRot=usedRots[trayIdx];
       var pc=document.createElement('div');
-      pc.style.cssText='width:'+pw+'px;height:'+ph+'px;border-radius:6px;overflow:hidden;cursor:grab;border:2px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;flex-shrink:0;';
+      // Remove overflow:hidden so rotated canvas is never clipped
+      pc.style.cssText='width:'+pw+'px;height:'+ph+'px;border-radius:6px;cursor:grab;border:2px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;';
       pc.dataset.pieceIdx=mi;
-      // Random initial rotation: 0, 90, 180 or 270 — but guarantee at least some pieces are rotated
-      var initRots=[0,90,180,270];
-      var initRot=initRots[Math.floor(Math.random()*4)];
       pc.dataset.rotation=String(initRot);
       pc.draggable=true;
       var c2=document.createElement('canvas');
       var col2=mi%cols,row2=Math.floor(mi/cols);
       c2.width=pw;c2.height=ph;
-      c2.getContext('2d').drawImage(img,col2*img.naturalWidth/cols,row2*img.naturalHeight/rows,img.naturalWidth/cols,img.naturalHeight/rows,0,0,pw,ph);
-      if(initRot!==0)c2.style.transform='rotate('+initRot+'deg)';
+      drawPieceRotated(c2,img,col2,row2,cols,rows,initRot);
       pc.appendChild(c2);
-      // Rotation label
+      // Rotation hint label
       var rotLabel=document.createElement('div');
-      rotLabel.style.cssText='position:absolute;bottom:2px;right:2px;font-size:10px;background:rgba(0,0,0,0.5);color:#fff;padding:1px 3px;border-radius:3px;';
+      rotLabel.style.cssText='position:absolute;bottom:2px;right:2px;font-size:10px;background:rgba(0,0,0,0.6);color:#fff;padding:1px 4px;border-radius:3px;pointer-events:none;';
       rotLabel.textContent='2x↻';
       pc.appendChild(rotLabel);
-      // Double tap/click to rotate
+      // Double tap/click to rotate 90° — redraws pixels, no CSS transform
       var tapCount=0,tapTimer=null;
       pc.addEventListener('click',function(){
         tapCount++;
         if(tapTimer)clearTimeout(tapTimer);
         tapTimer=setTimeout(function(){
           if(tapCount>=2){
-            var rot=(parseInt(this.dataset.rotation||'0')+90)%360;
-            this.dataset.rotation=rot;
-            this.querySelector('canvas').style.transform='rotate('+rot+'deg)';
+            var cur=parseInt(this.dataset.rotation||'0');
+            var next=(cur+90)%360;
+            this.dataset.rotation=String(next);
+            var cv=this.querySelector('canvas');
+            var colN=parseInt(this.dataset.pieceIdx)%cols;
+            var rowN=Math.floor(parseInt(this.dataset.pieceIdx)/cols);
+            drawPieceRotated(cv,img,colN,rowN,cols,rows,next);
           }
           tapCount=0;
         }.bind(this),300);
@@ -1990,7 +2020,7 @@ function placePiece(hole,piece,correct){
       return;
     }
     hole.innerHTML='';
-    // Copy canvas content properly (cloneNode loses pixel data)
+    // Copy the already-correctly-drawn canvas pixels (rotation baked in at 0°)
     var srcCanvas=piece.querySelector('canvas');
     if(srcCanvas){
       var dstCanvas=document.createElement('canvas');
@@ -2001,29 +2031,37 @@ function placePiece(hole,piece,correct){
       dstCanvas.getContext('2d').drawImage(srcCanvas,0,0);
       hole.appendChild(dstCanvas);
     }
-    // Flash green briefly then remove border so it blends into the image
+    // Flash green briefly then hide border so piece blends into image
     hole.style.border='2px solid var(--green)';
     hole.style.background='transparent';
     hole.classList.remove('puzzle-hole');
-    setTimeout(function(){hole.style.border='none';},700);
+    setTimeout(function(){hole.style.border='none';},600);
     piece.remove();
     puzzleState.solved++;
-    playSuccess();showEmoji('👏');
+    // Per-piece feedback (only if not the last piece — last piece handled by handleAnswer)
+    var isLast=puzzleState.solved>=puzzleState.missingIdxs.length;
+    if(!isLast){
+      playSuccess();
+      showEmoji('👏');
+      speak('Muito bem!');
+    }
     // Blink remaining holes and pieces
     setTimeout(function(){
       document.querySelectorAll('.puzzle-hole').forEach(function(h){blinkEl(h,'attention',2);});
       var tray=document.getElementById('puzzle-tray');
-      if(tray)tray.querySelectorAll('div').forEach(function(p,i){setTimeout(function(){blinkEl(p,'warn',2);},i*150);});
+      if(tray)tray.querySelectorAll('[data-piece-idx]').forEach(function(p,i){setTimeout(function(){blinkEl(p,'warn',2);},i*150);});
     },400);
-    speak('Muito bem!');
-    if(puzzleState.solved>=puzzleState.missingIdxs.length){
+    // Puzzle complete: fire only once via guard flag
+    if(isLast){
+      if(puzzleState.completed)return;
+      puzzleState.completed=true;
       setTimeout(function(){
-        answers[currentQIdx].correct=true;answers[currentQIdx].chosen=0;
-        journeyCorrectAnswer();
+        answers[currentQIdx].correct=true;
+        answers[currentQIdx].chosen=0;
+        handleAnswer(true);
         showEmoji('🎉');
-        speak('Muito bem!');
         renderQuizNav(true);
-      },500);
+      },600);
     }
   }
 }
@@ -2756,23 +2794,25 @@ function handleVoiceAnswer(spokenText, q){
       if(spoken.includes(word))matchedShape=shapeMap[word];
     });
     if(matchedShape){
-      // Find the alt that matches this shape name or the correct answer
+      var correctShape=q.shapesMain||'circle';
+      var isCorrect=(matchedShape===correctShape);
       if(q.alts&&q.alts.length){
-        var idx=q.alts.findIndex(function(a){return a.correct;});
-        var correctShape=q.shapesMain||'';
-        if(matchedShape===correctShape){selectAlt(idx);return;}
-        // Try to find any alt matching what was said
-        var altIdx=q.alts.findIndex(function(a){
-          var at=a.text.toLowerCase();
-          return at===spoken||Object.keys(shapeMap).some(function(w){return spoken.includes(w)&&shapeMap[w]===correctShape&&at.includes(w);});
-        });
-        if(altIdx>=0){selectAlt(altIdx);return;}
-        // If wrong shape said, still register wrong answer
-        selectAlt(idx===0?1:0);
-        return;
+        // Has explicit alternatives — use selectAlt
+        var ci2=q.alts.findIndex(function(a){return a.correct;});
+        if(isCorrect){selectAlt(ci2);}
+        else{
+          var wrongIdx=ci2===0?1:0;
+          selectAlt(wrongIdx);
+        }
+      } else {
+        // Voice-only (no alts): use handleAnswer directly
+        handleAnswer(isCorrect);
+        renderQuizNav(true);
+        setTimeout(function(){blinkNav();},500);
       }
+      return;
     }
-    toast('Não entendi "'+spokenText+'". Diga o nome da forma.');
+    toast('Não entendi "'+spokenText+'". Diga o nome da forma: triângulo, círculo, quadrado...');
     return;
   }
 
@@ -3179,14 +3219,22 @@ function renderQuizQ(){
   // Question text
   var textEl=document.getElementById('quiz-text');
   var titleBox=document.getElementById('quiz-title-box');
+  // Types that set their own default title inside their render function
+  var selfTitledTypes=['shapes','number','period','clock','money','words','puzzle','compare'];
+  var isSelfTitled=selfTitledTypes.indexOf(qtype)!==-1;
   if(q.text&&titleBox){
     titleBox.style.display='block';
     titleBox.className='quiz-title-box has-text';
     window._currentSpeakText=q.text;
     textEl.innerHTML=esc(q.text)+
       ' <button class="speak-btn" onclick="speak(window._currentSpeakText)" title="Ouvir">🔊</button>';
-  } else {
+  } else if(!isSelfTitled) {
+    // Only hide for types that don't set their own title
     if(titleBox){titleBox.style.display='none';titleBox.className='quiz-title-box';}
+  } else {
+    // For self-titled types with no q.text: clear content now, let the render fn fill it
+    if(textEl)textEl.innerHTML='';
+    if(titleBox){titleBox.style.display='none';}// will be shown by render fn if needed
   }
 
   // For types that generated image (photo exists), just show alts directly
@@ -3506,6 +3554,8 @@ function selectAlt(i){
       var btns=document.querySelectorAll('.alt-btn');
       if(btns[i]){btns[i].classList.add('wrong');setTimeout(function(){
         if(btns[i]){btns[i].classList.remove('wrong','selected');}
+        // Reset chosen so player can answer again
+        answers[currentQIdx].chosen=-1;
         // Blink remaining alts after wrong answer
         blinkCurrentAlts();
       },700);}
