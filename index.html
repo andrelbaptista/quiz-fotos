@@ -2115,19 +2115,21 @@ function speakQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
   if(!q)return;
   var qtype=q.qtype||'photo';
-  var msgs={
+  var typeInstructions={
     photo:'Observe a foto e escolha a resposta correta.',
     clock:'Veja o relógio e escolha a hora correta.',
     period:'Observe o horário e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
     money:'Identifique o valor da nota e escolha a resposta.',
-    number:'Analise o número e responda.',
+    number:'Analise os números e escolha a resposta correta.',
     puzzle:'Arraste as peças para completar a imagem. Toque duas vezes para girar a peça.',
     words:'Leia a palavra e escolha a resposta.',
-    shapes:'Observe a forma e responda.',
+    shapes:'Observe a forma e diga o nome em voz alta.',
     doc:'Leia o documento e responda.',
     compare:'Observe as duas imagens e responda a pergunta.'
   };
-  var msg=msgs[qtype]||'Escolha a alternativa correta.';
+  var instruction=typeInstructions[qtype]||'Escolha a alternativa correta.';
+  // Read question text first, then instruction
+  var msg=q.text ? q.text+'. '+instruction : instruction;
   setTimeout(function(){speak(msg);},400);
 }
 function showQuizHelp(){
@@ -2778,41 +2780,52 @@ function handleVoiceAnswer(spokenText, q){
 
   // Shapes: match spoken shape name
   if(qtype==='shapes'){
+    // Normalize: strip accents for robust comparison
+    function normStr(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();}
     var shapeMap={
-      'círculo':'circle','circulo':'circle','bola':'circle','redondo':'circle','redonda':'circle',
+      'circulo':'circle','bola':'circle','redondo':'circle','redonda':'circle',
       'quadrado':'square','quadrada':'square',
-      'triângulo':'triangle','triangulo':'triangle','triangular':'triangle',
-      'retângulo':'rectangle','retangulo':'rectangle',
+      'triangulo':'triangle','triangular':'triangle',
+      'retangulo':'rectangle','retangular':'rectangle',
       'estrela':'star',
-      'coração':'heart','coracao':'heart',
+      'coracao':'heart',
       'diamante':'diamond','losango':'diamond',
-      'pentágono':'pentagon','pentagono':'pentagon',
-      'hexágono':'hexagon','hexagono':'hexagon'
+      'pentagono':'pentagon',
+      'hexagono':'hexagon'
     };
+    var spokenNorm=normStr(spoken);
     var matchedShape=null;
-    Object.keys(shapeMap).forEach(function(word){
-      if(spoken.includes(word))matchedShape=shapeMap[word];
-    });
+    Object.keys(shapeMap).forEach(function(word){if(spokenNorm.includes(word))matchedShape=shapeMap[word];});
     if(matchedShape){
       var correctShape=q.shapesMain||'circle';
       var isCorrect=(matchedShape===correctShape);
       if(q.alts&&q.alts.length){
-        // Has explicit alternatives — use selectAlt
         var ci2=q.alts.findIndex(function(a){return a.correct;});
-        if(isCorrect){selectAlt(ci2);}
-        else{
-          var wrongIdx=ci2===0?1:0;
-          selectAlt(wrongIdx);
-        }
+        if(isCorrect){selectAlt(ci2);}else{selectAlt(ci2===0?1:0);}
       } else {
-        // Voice-only (no alts): use handleAnswer directly
         handleAnswer(isCorrect);
-        renderQuizNav(true);
-        setTimeout(function(){blinkNav();},500);
+        if(!isCorrect&&(quizCfg.attempts===0||currentAttempts<quizCfg.attempts)){
+          setTimeout(function(){
+            answers[currentQIdx].chosen=-1;
+            renderShapesQuestion(activeQuestions[quizOrder[currentQIdx]]);
+            var ae2=document.getElementById('quiz-alts');
+            var q2=activeQuestions[quizOrder[currentQIdx]];
+            if(q2.cfg&&q2.cfg.voiceAnswer&&ae2&&!document.getElementById('voice-answer-btn')){
+              var vbtn=document.createElement('button');
+              vbtn.id='voice-answer-btn';vbtn.className='voice-btn';
+              vbtn.innerHTML='\uD83C\uDF99\uFE0F Falar resposta';
+              vbtn.onclick=function(){startListening(function(text){handleVoiceAnswer(text,q2);});};
+              ae2.appendChild(vbtn);
+            }
+          },800);
+        } else {
+          renderQuizNav(true);
+          setTimeout(function(){blinkNav();},500);
+        }
       }
       return;
     }
-    toast('Não entendi "'+spokenText+'". Diga o nome da forma: triângulo, círculo, quadrado...');
+    toast('N\u00e3o entendi "'+spokenText+'". Diga: tri\u00e2ngulo, c\u00edrculo, quadrado...');
     return;
   }
 
@@ -3169,23 +3182,21 @@ function renderQuizQ(){
   var img=document.getElementById('quiz-img');
   // Treat false/null/undefined as no photo
   var hasPhoto=q.photo&&typeof q.photo==='string'&&q.photo.length>10;
-  if(hasPhoto){
-    // For puzzle: hide the img tag - renderPuzzleQuestion handles display itself
-    if(qtype==='puzzle'){
-      // Puzzle uses its own img inside renderPuzzleQuestion
-      img.style.display='none';
-    } else if(qtype==='doc'&&!q.photo){
-      img.style.display='none';
-    } else {
-      img.src=q.photo;img.style.display='block';
-    }
+  // Types that always render their own interactive display — never use quiz-img
+  var neverShowImg=['puzzle','shapes','number','clock','money','period','words','compare'];
+  if(neverShowImg.indexOf(qtype)!==-1){
+    img.style.display='none';
+    var titleBar2=document.getElementById('quiz-img-title-bar');
+    if(titleBar2)titleBar2.style.display='none';
+  } else if(hasPhoto){
+    img.src=q.photo;img.style.display='block';
     // Title overlay on image
     var titleBar=document.getElementById('quiz-img-title-bar');
     if(titleBar&&q.text){titleBar.textContent=q.text;titleBar.style.display='block';}
     else if(titleBar){titleBar.style.display='none';}
     // Reset quiz-alts display after setting photo
     var _td=document.getElementById('quiz-type-display');
-    if(_td)_td.innerHTML='';
+        if(_td)_td.innerHTML='';
   } else if(qtype!=='photo'&&qtype!=='puzzle'){
     // Generate image on the fly for types without photo
     img.style.display='none';
@@ -3383,26 +3394,34 @@ function renderNumberQuestion(q){
   ae.innerHTML='';
   if(display)display.innerHTML='';
 
-  // Big equal-size numbers in display area
+  // Set the operation label as the question title (in quiz-title-box, not duplicated in alts)
+  var opLabels={maior:'Qual número é MAIOR?',menor:'Qual número é MENOR?',soma:'Qual é a soma?',diferenca:'Qual é a diferença?'};
+  var opLabel=opLabels[q.numOp||'maior']||'Qual número é MAIOR?';
+  if(!q.text){
+    var titleBox=document.getElementById('quiz-title-box');
+    var textEl=document.getElementById('quiz-text');
+    if(titleBox&&textEl){
+      titleBox.style.display='block';
+      titleBox.className='quiz-title-box has-text';
+      window._currentSpeakText=opLabel;
+      textEl.innerHTML=esc(opLabel)+' <button class="speak-btn" onclick="speak(window._currentSpeakText)" title="Ouvir">🔊</button>';
+    }
+  }
+
+  // Big EQUAL-size numbers side by side in display area (visual only, not clickable)
   var wrap=document.createElement('div');
   wrap.className='number-compare';
   [n1,n2].forEach(function(n,i){
     var div=document.createElement('div');
-    div.className='number-big';
+    // Equal fixed font size regardless of value, no click handler
+    div.style.cssText='font-size:80px;font-weight:900;color:var(--text);line-height:1;padding:16px 24px;text-align:center;min-width:80px;';
     div.textContent=n;
     wrap.appendChild(div);
     if(i===0){var vs=document.createElement('div');vs.className='number-vs';vs.textContent='ou';wrap.appendChild(vs);}
   });
   if(display)display.appendChild(wrap);
 
-  // Title label above list buttons
-  var label=document.createElement('div');
-  label.style.cssText='text-align:center;margin:8px 0 10px;font-size:15px;color:var(--text2);font-weight:700;';
-  var opLabels={maior:'Qual número é MAIOR?',menor:'Qual número é MENOR?',soma:'Qual é a soma?',diferenca:'Qual é a diferença?'};
-  label.textContent=opLabels[q.numOp||'maior']||'Qual número é MAIOR?';
-  ae.appendChild(label);
-
-  // List-style answer buttons (same as other question types)
+  // Answer buttons as list (A/B) — same style as other question types
   [n1,n2].forEach(function(n,i){
     var cls='alt-btn';
     if(locked){if(i===correctIdx)cls+=' correct';else cls+=' wrong';}
@@ -3452,9 +3471,12 @@ function handleAnswer(isCorrect){
     currentAttempts++;answers[currentQIdx].attempts=currentAttempts;answers[currentQIdx].chosen=0;
     if(quizCfg.attempts===0||currentAttempts>=quizCfg.attempts){
       answers[currentQIdx].correct=false;playError();showEmoji('😵');journeyWrongAnswer();
-      speak('Não desista! Tente de novo!');
+      speak('Não foi dessa vez!');
     } else {
-      playError();showEmoji('😬');journeyWrongAnswer();updateAttemptsBadge();
+      playError();showEmoji('😬');journeyWrongAnswer();
+      updateAttemptsBadge(true);
+      // Reset so player can try again
+      setTimeout(function(){answers[currentQIdx].chosen=-1;},700);
     }
   }
 }
