@@ -448,7 +448,18 @@
         }
       ],
       "goalEmoji": "asdfad",
-      "goalImg": null
+      "goalImg": null,
+      "results": {
+        "master": [
+          {
+            "date": "2026-06-13T15:02:02.636Z",
+            "correct": 1,
+            "total": 1,
+            "pct": 100,
+            "username": "master"
+          }
+        ]
+      }
     }
   ],
   "users": [
