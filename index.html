@@ -3810,6 +3810,29 @@ function buildResults(){
       +'<span style="display:flex;align-items:center;gap:6px;">'+attStr+' '+icon+'</span>'
       +'</div>';
 
+    // Visual display per question type
+    var qtype=q.qtype||'photo';
+    if(q.photo&&['photo','doc','puzzle'].indexOf(qtype)!==-1){
+      html+='<div style="text-align:center;margin-bottom:8px;"><img src="'+q.photo+'" style="max-width:200px;max-height:140px;border-radius:8px;object-fit:contain;"></div>';
+    } else if(qtype==='clock'||qtype==='period'){
+      var rh=q.clockHour||10, rm=q.clockMinute||0;
+      var mode=q.clockMode||'analog';
+      if(mode==='analog'){
+        html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawClock(rh,rm,120)+'</div>';
+      } else {
+        html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawDigitalClock(rh,rm)+'</div>';
+      }
+    } else if(qtype==='money'){
+      var mv=q.moneyValue||10;
+      html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawMoneyNote(mv,q.moneyCurrency||'BRL',true)+'</div>';
+    } else if(qtype==='shapes'){
+      html+='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',80)+'</div>';
+    } else if(qtype==='number'&&q.num1!==undefined){
+      html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:8px;">'+q.num1+' ou '+q.num2+'</div>';
+    } else if(qtype==='words'&&q.wordsText){
+      html+='<div style="text-align:center;font-size:32px;font-weight:900;margin-bottom:8px;color:var(--blue);">'+esc(q.wordsText)+'</div>';
+    }
+
     // Alternatives (only if question has alts)
     if(q.alts&&q.alts.length){
       var ci=q.alts.findIndex(function(a){return a.correct;});
