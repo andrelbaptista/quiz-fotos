@@ -439,7 +439,18 @@
         }
       ],
       "goalEmoji": "Coração",
-      "goalImg": null
+      "goalImg": null,
+      "results": {
+        "master": [
+          {
+            "date": "2026-06-13T13:42:24.098Z",
+            "correct": 1,
+            "total": 1,
+            "pct": 100,
+            "username": "master"
+          }
+        ]
+      }
     }
   ],
   "users": [
