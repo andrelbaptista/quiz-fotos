@@ -1993,13 +1993,86 @@ function renderPuzzleQuestion(q){
 }
 
 
+function puzzleWrongAttempt(){
+  if(quizCfg.attempts===0)return; // unlimited
+  currentAttempts++;
+  answers[currentQIdx].attempts=currentAttempts;
+  var rem=quizCfg.attempts-currentAttempts;
+  var badge=document.getElementById('attempts-badge');
+
+  if(rem<=0){
+    // No more attempts — end puzzle as wrong
+    playError();showEmoji('❌');journeyWrongAnswer();
+    answers[currentQIdx].correct=false;answers[currentQIdx].chosen=0;
+    renderQuizNav(true);
+    setTimeout(function(){blinkNav();},500);
+    return;
+  }
+
+  // Warning sounds & badge colors
+  if(rem===1){
+    // DANGER: 1 attempt left — red + urgent sound
+    playDanger();
+    if(badge){
+      badge.style.background='rgba(217,48,37,0.25)';
+      badge.style.color='var(--red)';
+      badge.style.animation='none';void badge.offsetWidth;
+      badge.style.animation='att-pop 0.4s ease-in-out 3';
+    }
+    showEmoji('⚠️');
+  } else if(rem===2){
+    // CAUTION: 2 attempts left — yellow + warning sound
+    playWarning();
+    if(badge){
+      badge.style.background='rgba(255,160,0,0.25)';
+      badge.style.color='#d97706';
+      badge.style.animation='none';void badge.offsetWidth;
+      badge.style.animation='att-pop 0.4s ease-in-out 2';
+    }
+    showEmoji('⚠️');
+  } else {
+    playError();
+  }
+  updateAttemptsBadge(true);
+}
+
+function playWarning(){
+  try{
+    var ctx=getAudio();
+    [440,554].forEach(function(freq,i){
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='triangle';o.frequency.value=freq;
+      var t=ctx.currentTime+i*0.18;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.35,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o.start(t);o.stop(t+0.25);
+    });
+  }catch(e){}
+}
+
+function playDanger(){
+  try{
+    var ctx=getAudio();
+    [330,277,220].forEach(function(freq,i){
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.value=freq;
+      var t=ctx.currentTime+i*0.15;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.4,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+      o.start(t);o.stop(t+0.2);
+    });
+  }catch(e){}
+}
+
 function onPieceDrop(e){
   e.preventDefault();
   if(!dragPiece)return;
   var holeIdx=parseInt(this.dataset.idx);
   var pieceIdx=parseInt(dragPiece.dataset.pieceIdx);
   if(holeIdx===pieceIdx){placePiece(this,dragPiece,true);}
-  else{this.style.background='rgba(0,113,227,0.15)';shake(dragPiece);}
+  else{this.style.background='rgba(0,113,227,0.15)';shake(dragPiece);puzzleWrongAttempt();}
 }
 
 var _touchPiece=null,_touchClone=null;
@@ -2024,7 +2097,7 @@ function onPieceTouchDrop(e){
   var holeIdx=parseInt(this.dataset.idx);
   var pieceIdx=parseInt(_touchPiece.dataset.pieceIdx);
   if(holeIdx===pieceIdx){placePiece(this,_touchPiece,true);}
-  else{shake(_touchPiece);}
+  else{shake(_touchPiece);puzzleWrongAttempt();}
   _touchPiece=null;
 }
 
@@ -2034,8 +2107,9 @@ function placePiece(hole,piece,correct){
     var rot=parseInt(piece.dataset.rotation||'0');
     if(rot!==0){
       shake(piece);
-      toast('Gire a peça até ficar na posição certa! (toque 2x para girar)');
+      toast('Gire a peça! Toque 2x para girar.');
       hole.style.background='rgba(0,113,227,0.15)';
+      puzzleWrongAttempt();
       return;
     }
     hole.innerHTML='';
@@ -3795,13 +3869,16 @@ function buildResults(){
   // Record result in history
   if(currentUser&&activeQuizId)recordResult(activeQuizId,correct,total);
 
-  // Always show full question review
+  // Show review section only if at least one question has result!='score'
+  var hasReview=quizOrder.some(function(qi){return getQCfg(qi).result!=='score';});
   var rev=document.getElementById('review-section');
-  rev.style.display='block';
+  rev.style.display=hasReview?'block':'none';
   var list=document.getElementById('results-list');
   list.innerHTML='';
 
   quizOrder.forEach(function(qi,idx){
+    // Skip questions configured as score-only
+    if(getQCfg(qi).result==='score')return;
     var q=activeQuestions[qi];
     var ans=answers[idx];
     var cfg=getQCfg(qi);
