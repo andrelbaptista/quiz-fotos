@@ -368,12 +368,14 @@ svg.hist-chart{display:block;max-width:100%;}
       <div class="role-tab" id="tab-register" onclick="switchLoginTab('register')">Cadastrar</div>
     </div>
     <div id="login-err" class="login-err"></div>
+    <form onsubmit="doLogin();return false;" autocomplete="on">
     <div class="field"><label>Usuário</label><input type="text" id="login-user" placeholder="seu usuário" autocomplete="username"></div>
-    <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
     <div id="register-fields" style="display:none;">
-      <div class="field"><label>Confirmar senha</label><input type="password" id="login-pass2" placeholder="••••••••"></div>
+      <div class="field"><label>Confirmar senha</label><input type="password" id="login-pass2" placeholder="••••••••" autocomplete="new-password"></div>
     </div>
-    <button class="btn btn-primary btn-block" id="btn-login-submit" onclick="doLogin()">Entrar</button>
+    <button class="btn btn-primary btn-block" id="btn-login-submit" type="submit">Entrar</button>
+    </form>
     <div style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center;line-height:1.5;">Novo? Cadastre-se como jogador.<br>Aguarde liberação de acesso pelo admin.</div>
   </div>
 </div>
@@ -529,20 +531,14 @@ svg.hist-chart{display:block;max-width:100%;}
           </div>
         </div>
         <div id="config-money" style="display:none;">
-          <div class="field"><label>Valor da nota (R$)</label>
-            <select id="money-value" onchange="updateMoneyNotePreview()">
-              <option value="2">R$ 2,00</option>
-              <option value="5">R$ 5,00</option>
-              <option value="10" selected>R$ 10,00</option>
-              <option value="20">R$ 20,00</option>
-              <option value="50">R$ 50,00</option>
-              <option value="100">R$ 100,00</option>
-              <option value="200">R$ 200,00</option>
-            </select>
+          <div class="field"><label>Nota exibida na questão</label>
+            <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">Clique na nota para selecioná-la:</p>
+            <div id="money-note-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;"></div>
+            <input type="hidden" id="money-value" value="10">
           </div>
-          <div id="money-note-preview" style="display:flex;justify-content:center;margin:10px 0 4px;"></div>
-          <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">As alternativas abaixo são os valores para escolher. Marque o correto.</p>
-          <button class="btn btn-sm" style="width:100%;margin-bottom:4px;" onclick="moneyFillAlts()">↺ Preencher alternativas com notas do Brasil</button>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:6px;">Alternativas — clique nas notas para adicionar:</p>
+          <div id="money-alts-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;"></div>
+          <p style="font-size:11px;color:var(--text2);margin-bottom:4px;">Alternativas selecionadas (marque a correta):</p>
         </div>
         <div id="config-puzzle" style="display:none;">
           <div class="row">
@@ -861,7 +857,7 @@ svg.hist-chart{display:block;max-width:100%;}
           <div class="field"><label>Arquivo de dados</label><input type="text" id="cfg-file" placeholder="ex: quiz-data.json"></div>
           <div class="field">
             <label>Token de acesso</label>
-            <input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx">
+            <form onsubmit="return false;"><input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off"></form>
             <p style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">GitHub → Settings → Developer settings → Personal access tokens → marque <strong>repo</strong></p>
           </div>
           <div class="divider"></div>
@@ -1667,7 +1663,7 @@ function editQuestion(i){
       var mv2=document.getElementById('money-value2');if(mv2)mv2.value=q.moneyValue2||20;
       var mop=document.getElementById('money-op');if(mop)mop.value=q.moneyOp||'maior';
       var mc=document.getElementById('money-currency');if(mc)mc.value=q.moneyCurrency||'BRL';
-      updateMoneyConfig();updateMoneyPreview();
+      updateMoneyConfig();updateMoneyPreview();buildMoneyAdminGrids();
     } else if(qtype==='puzzle'){
       var pco=document.getElementById('puzzle-cols');if(pco)pco.value=q.puzzleCols||3;
       var pro=document.getElementById('puzzle-rows');if(pro)pro.value=q.puzzleRows||3;
@@ -1803,7 +1799,7 @@ function setQType(type){
   if(type==='clock')setTimeout(updateClockPreview,50);
   if(type==='period')setTimeout(updatePeriodPreview,50);
   if(type==='shapes')setTimeout(updateShapesPreview,50);
-  if(type==='money')setTimeout(function(){updateMoneyPreview();updateMoneyNotePreview();},50);
+  if(type==='money')setTimeout(function(){updateMoneyPreview();buildMoneyAdminGrids();},50);
   if(type==='words'){
     setTimeout(updateWordsPreview,50);
     var wt=document.getElementById('words-text');
@@ -1833,9 +1829,8 @@ function updateClockPreview(){
     if(help)help.textContent='A jogadora verá o display digital e escolherá o horário correto.';
     if(minWrap)minWrap.style.display='block';
   } else if(mode==='period'){
-    var pe=h<12?'🌅 Manhã':h<18?'☀️ Tarde':'🌙 Noite';
-    wrap.innerHTML=drawClock(h,0,size)+'<div style="text-align:center;font-size:18px;font-weight:800;margin-top:8px;color:var(--blue-text);">'+pe+'</div>';
-    if(help)help.textContent='A jogadora verá o relógio e escolherá: Manhã, Tarde ou Noite.';
+    wrap.innerHTML=drawClock(h,0,size);
+    if(help)help.textContent='A jogadora verá o relógio e escolherá: Madrugada, Manhã, Tarde ou Noite.';
     if(minWrap)minWrap.style.display='none';
   }
 }
@@ -2546,40 +2541,53 @@ function updateWordsPreview(){
   if(prev)prev.innerHTML='<span style="font-size:'+size+'px;font-weight:900;color:'+color+';line-height:1.2;">'+esc(text)+'</span>';
 }
 
-function updateMoneyNotePreview(){
-  var sel=document.getElementById('money-value');
-  var wrap=document.getElementById('money-note-preview');
-  if(!sel||!wrap)return;
-  var val=parseInt(sel.value)||10;
-  wrap.innerHTML=drawMoneyNote(val,'BRL');
-  // Also auto-fill alts if none yet
-  if(currentAlts.length===0)moneyFillAlts(true);
+function buildMoneyAdminGrids(){
+  var NOTE_VALS=[2,5,10,20,50,100,200];
+  var selVal=parseInt(document.getElementById('money-value')?document.getElementById('money-value').value:10)||10;
+  var ng=document.getElementById('money-note-grid');
+  if(ng){
+    ng.innerHTML='';
+    NOTE_VALS.forEach(function(v){
+      var imgSrc=MONEY_IMGS[v];
+      var cell=document.createElement('div');
+      cell.style.cssText='cursor:pointer;border-radius:8px;border:3px solid '+(v===selVal?'var(--blue)':'transparent')+';overflow:hidden;transition:border 0.15s;';
+      cell.title='R$ '+v+',00';
+      cell.innerHTML=(imgSrc?'<img src="'+imgSrc+'" style="width:100%;display:block;border-radius:6px;">':drawMoneyNote(v,'BRL'))+'<div style="text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:2px 0;">R$ '+v+',00</div>';
+      cell.onclick=function(){document.getElementById('money-value').value=v;buildMoneyAdminGrids();};
+      ng.appendChild(cell);
+    });
+  }
+  var ag=document.getElementById('money-alts-grid');
+  if(ag){
+    ag.innerHTML='';
+    NOTE_VALS.forEach(function(v){
+      var imgSrc=MONEY_IMGS[v];
+      var isSelected=currentAlts.some(function(a){return parseFloat(String(a.text).replace(/[^\d,.]/g,'').replace(',','.'))==v;});
+      var cell=document.createElement('div');
+      cell.style.cssText='cursor:pointer;border-radius:8px;border:3px solid '+(isSelected?'var(--green)':'transparent')+';overflow:hidden;opacity:'+(isSelected?'1':'0.55')+';transition:all 0.15s;';
+      cell.innerHTML=(imgSrc?'<img src="'+imgSrc+'" style="width:100%;display:block;border-radius:6px;">':drawMoneyNote(v,'BRL'))+'<div style="text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:2px 0;">R$ '+v+',00</div>';
+      cell.onclick=function(){
+        var txt='R$ '+v+',00';
+        var idx2=currentAlts.findIndex(function(a){return parseFloat(String(a.text).replace(/[^\d,.]/g,'').replace(',','.'))==v;});
+        if(idx2>=0){currentAlts.splice(idx2,1);}
+        else{var mv=parseInt(document.getElementById('money-value').value)||10;currentAlts.push({text:txt,correct:(v===mv)});}
+        renderAlts();buildMoneyAdminGrids();
+      };
+      ag.appendChild(cell);
+    });
+  }
 }
-
+function updateMoneyNotePreview(){buildMoneyAdminGrids();}
 function moneyFillAlts(silent){
-  var sel=document.getElementById('money-value');
-  var val=parseInt(sel?sel.value:10)||10;
-  // All Brazilian real notes
+  var val=parseInt(document.getElementById('money-value')?document.getElementById('money-value').value:10)||10;
   var allNotes=[2,5,10,20,50,100,200];
-  // Pick 3 distractors (notes different from val) + the correct one → 4 options total
-  var distractors=allNotes.filter(function(n){return n!==val;});
-  // Shuffle distractors and take 3
-  for(var i=distractors.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=distractors[i];distractors[i]=distractors[j];distractors[j]=tmp;}
-  var choices=distractors.slice(0,3).concat([val]);
-  // Shuffle final list
-  for(var i=choices.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=choices[i];choices[i]=choices[j];choices[j]=tmp;}
-  currentAlts=choices.map(function(n){
-    return{text:'R$ '+n+',00',correct:(n===val)};
-  });
-  renderAlts();
-  if(!silent)toast('Alternativas preenchidas com notas brasileiras!');
-}
-
-function updatePeriodPreview(){
-  var h=parseInt(document.getElementById('period-hour')?document.getElementById('period-hour').value:10)||10;
-  var m=parseInt(document.getElementById('period-minute')?document.getElementById('period-minute').value:0)||0;
-  var wrap=document.getElementById('period-preview-wrap');
-  if(wrap){var sz=Math.min(160,window.innerWidth*0.4);wrap.innerHTML='<div class="clock-wrap">'+drawClock(h,m,sz)+'</div>';}
+  var dist=allNotes.filter(function(n){return n!==val;});
+  for(var i=dist.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=dist[i];dist[i]=dist[j];dist[j]=t;}
+  var ch=dist.slice(0,3).concat([val]);
+  for(var i=ch.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=ch[i];ch[i]=ch[j];ch[j]=t;}
+  currentAlts=ch.map(function(n){return{text:'R$ '+n+',00',correct:(n===val)};});
+  renderAlts();buildMoneyAdminGrids();
+  if(!silent)toast('Alternativas preenchidas!');
 }
 
 function updateMoneyConfig(){
@@ -3269,8 +3277,8 @@ function renderQuizQ(){
     // Reset quiz-alts display after setting photo
     var _td=document.getElementById('quiz-type-display');
         if(_td)_td.innerHTML='';
-  } else if(qtype!=='photo'&&qtype!=='puzzle'){
-    // Generate image on the fly for types without photo
+  } else if(qtype!=='photo'&&qtype!=='puzzle'&&neverShowImg.indexOf(qtype)===-1){
+    // Generate image on the fly for types without photo (only for photo-based types)
     img.style.display='none';
     var _tdLoad=document.getElementById('quiz-type-display');
     if(_tdLoad)_tdLoad.innerHTML='<div style="text-align:center;padding:20px;color:var(--text2);">⏳ Gerando...</div>';
@@ -3326,9 +3334,8 @@ function renderQuizQ(){
   function doRender(){
     var hasP=q.photo&&typeof q.photo==='string'&&q.photo.length>10;
     var qtype2=q.qtype||'photo';
-    console.log('doRender: hasP='+hasP+' qtype='+qtype2+' alts='+(q.alts?q.alts.length:'none'));
     // Types that need special rendering even when photo exists
-    var specialTypes=['puzzle','period','number','shapes','words','clock'];
+    var specialTypes=['puzzle','period','number','shapes','words','clock','money','compare'];
     if(hasP&&specialTypes.indexOf(qtype)===-1){
       // Photo already displayed - just show alternativas
       if(q.alts&&q.alts.length)renderQuizAlts(answers[currentQIdx].chosen!==-1);
