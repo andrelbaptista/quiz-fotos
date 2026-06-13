@@ -955,7 +955,7 @@ svg.hist-chart{display:block;max-width:100%;}
         <div class="score-cell red"><div class="num" id="res-wrong"></div><div class="lbl">Erradas</div></div>
         <div class="score-cell blue"><div class="num" id="res-pct"></div><div class="lbl">Nota</div></div>
       </div>
-      <div id="review-section" style="display:none;"><div class="section-title">Revisão</div><div id="results-list"></div></div>
+      <div id="review-section"><div class="section-title" style="margin-top:16px;">Revisão das questões</div><div id="results-list"></div></div>
       <div class="row" style="margin-top:16px;">
         <button class="btn btn-primary" onclick="restartQuiz()">↺ Refazer</button>
         <button class="btn btn-sm btn-green" onclick="showHistory(activeQuizId)">📊 Meu histórico</button>
@@ -2545,6 +2545,8 @@ function updateWordsPreview(){
 function buildMoneyAdminGrids(){
   var NOTE_VALS=[2,5,10,20,50,100,200];
   var selVal=parseInt(document.getElementById('money-value')?document.getElementById('money-value').value:10)||10;
+
+  // Main note selector grid
   var ng=document.getElementById('money-note-grid');
   if(ng){
     ng.innerHTML='';
@@ -2554,26 +2556,42 @@ function buildMoneyAdminGrids(){
       cell.style.cssText='cursor:pointer;border-radius:8px;border:3px solid '+(v===selVal?'var(--blue)':'transparent')+';overflow:hidden;transition:border 0.15s;';
       cell.title='R$ '+v+',00';
       cell.innerHTML=(imgSrc?'<img src="'+imgSrc+'" style="width:100%;display:block;border-radius:6px;">':drawMoneyNote(v,'BRL'))+'<div style="text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:2px 0;">R$ '+v+',00</div>';
-      cell.onclick=function(){document.getElementById('money-value').value=v;buildMoneyAdminGrids();};
+      // IIFE to capture v correctly in closure
+      cell.onclick=(function(val){return function(){
+        document.getElementById('money-value').value=val;
+        buildMoneyAdminGrids();
+      };})(v);
       ng.appendChild(cell);
     });
   }
+
+  // Alts picker grid
   var ag=document.getElementById('money-alts-grid');
   if(ag){
     ag.innerHTML='';
     NOTE_VALS.forEach(function(v){
       var imgSrc=MONEY_IMGS[v];
-      var isSelected=currentAlts.some(function(a){return parseFloat(String(a.text).replace(/[^\d,.]/g,'').replace(',','.'))==v;});
+      var isSelected=currentAlts.some(function(a){
+        return parseFloat(String(a.text).replace(/[^\d,.]/g,'').replace(',','.'))==v;
+      });
       var cell=document.createElement('div');
       cell.style.cssText='cursor:pointer;border-radius:8px;border:3px solid '+(isSelected?'var(--green)':'transparent')+';overflow:hidden;opacity:'+(isSelected?'1':'0.55')+';transition:all 0.15s;';
       cell.innerHTML=(imgSrc?'<img src="'+imgSrc+'" style="width:100%;display:block;border-radius:6px;">':drawMoneyNote(v,'BRL'))+'<div style="text-align:center;font-size:11px;font-weight:700;color:var(--text2);padding:2px 0;">R$ '+v+',00</div>';
-      cell.onclick=function(){
-        var txt='R$ '+v+',00';
-        var idx2=currentAlts.findIndex(function(a){return parseFloat(String(a.text).replace(/[^\d,.]/g,'').replace(',','.'))==v;});
-        if(idx2>=0){currentAlts.splice(idx2,1);}
-        else{var mv=parseInt(document.getElementById('money-value').value)||10;currentAlts.push({text:txt,correct:(v===mv)});}
-        renderAlts();buildMoneyAdminGrids();
-      };
+      // IIFE to capture v correctly in closure
+      cell.onclick=(function(val){return function(){
+        var txt='R$ '+val+',00';
+        var idx2=currentAlts.findIndex(function(a){
+          return parseFloat(String(a.text).replace(/[^\d,.]/g,'').replace(',','.'))==val;
+        });
+        if(idx2>=0){
+          currentAlts.splice(idx2,1);
+        } else {
+          var mv=parseInt(document.getElementById('money-value').value)||10;
+          currentAlts.push({text:txt,correct:(val===mv)});
+        }
+        renderAlts();
+        buildMoneyAdminGrids();
+      };})(v);
       ag.appendChild(cell);
     });
   }
@@ -3751,9 +3769,71 @@ function goToPrevQuestion(){
   renderQuizQ();
 }
 function confirmAbort(){showModal('<h2>Encerrar quiz?</h2><p>O progresso será perdido.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="closeModal();goHome()">Encerrar</button><button class="btn btn-sm" onclick="closeModal()">Continuar</button></div>');}
-function buildResults(){var correct=0;answers.forEach(function(a){if(a.correct)correct++;});var total=quizOrder.length,pct=Math.round(correct/total*100);document.getElementById('res-correct').textContent=correct;document.getElementById('res-wrong').textContent=total-correct;document.getElementById('res-pct').textContent=pct+'%';
+function buildResults(){
+  var correct=0,skipped=0;
+  answers.forEach(function(a){if(a.correct)correct++;if(a.skipped)skipped++;});
+  var total=quizOrder.length;
+  var pct=Math.round(correct/total*100);
+  document.getElementById('res-correct').textContent=correct;
+  document.getElementById('res-wrong').textContent=total-correct-skipped;
+  document.getElementById('res-pct').textContent=pct+'%';
+
   // Record result in history
-  if(currentUser&&activeQuizId)recordResult(activeQuizId,correct,total);var showRev=quizOrder.some(function(qi){return getQCfg(qi).result==='review';});var rev=document.getElementById('review-section');if(showRev){rev.style.display='block';var list=document.getElementById('results-list');list.innerHTML='';quizOrder.forEach(function(qi,idx){if(getQCfg(qi).result!=='review')return;var q=activeQuestions[qi],ans=answers[idx],ci=q.alts.findIndex(function(a){return a.correct;});var ok=ans.correct;var item=document.createElement('div');item.className='result-item';item.style.borderColor=ok?'var(--green-border)':'var(--red-border)';var imgH=q.photo?'<img class="result-img" src="'+q.photo+'" alt="">':'';var altsH='';(q.alts||[]).forEach(function(alt,ai){var cls='neutral',icon='';if(ai===ci){cls='correct';icon='✓ ';}else if(ai===ans.chosen&&!ok){cls='wrong';icon='✗ ';}altsH+='<div class="r-alt '+cls+'"><span class="rk">'+LETTERS[ai]+'</span>'+icon+esc(alt.text)+'</div>';});var lbl=q.text?q.text.substring(0,52)+(q.text.length>52?'…':''):'Questão '+(idx+1);item.innerHTML='<div class="result-header"><span>'+(idx+1)+'. '+esc(lbl)+'</span><span>'+(ok?'✅':'❌')+'</span></div>'+imgH+'<div class="result-alts">'+altsH+'</div>';list.appendChild(item);});}else{rev.style.display='none';}}
+  if(currentUser&&activeQuizId)recordResult(activeQuizId,correct,total);
+
+  // Always show full question review
+  var rev=document.getElementById('review-section');
+  rev.style.display='block';
+  var list=document.getElementById('results-list');
+  list.innerHTML='';
+
+  quizOrder.forEach(function(qi,idx){
+    var q=activeQuestions[qi];
+    var ans=answers[idx];
+    var cfg=getQCfg(qi);
+    var ok=ans.correct;
+    var wasSkipped=ans.skipped||(!ok&&ans.chosen===-1);
+    var attemptsTotal=cfg.attempts>0?cfg.attempts:'∞';
+    var attemptsUsed=ans.attempts||0;
+
+    var item=document.createElement('div');
+    item.className='result-item';
+    item.style.cssText='border:2px solid '+(ok?'var(--green-border)':wasSkipped?'var(--border2)':'var(--red-border)')+';border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:var(--surface);';
+
+    // Header: question number + label + icon
+    var icon=ok?'✅':wasSkipped?'⏭':'❌';
+    var lbl=q.text?q.text.substring(0,60)+(q.text.length>60?'…':''):'Questão '+(idx+1);
+    var attStr=wasSkipped?'<span style="color:var(--text2);font-size:12px;">Pulou</span>':'<span style="color:var(--text2);font-size:12px;">'+attemptsUsed+(attemptsTotal!=='∞'?' de '+attemptsTotal:' tentativa'+(attemptsUsed!==1?'s':''))+'</span>';
+
+    var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<span style="font-weight:700;font-size:14px;">'+(idx+1)+'. '+esc(lbl)+'</span>'
+      +'<span style="display:flex;align-items:center;gap:6px;">'+attStr+' '+icon+'</span>'
+      +'</div>';
+
+    // Alternatives (only if question has alts)
+    if(q.alts&&q.alts.length){
+      var ci=q.alts.findIndex(function(a){return a.correct;});
+      q.alts.forEach(function(alt,ai){
+        var isCorrect=(ai===ci);
+        var wasChosen=(ai===ans.chosen);
+        var bg=isCorrect?'var(--green-bg)':wasChosen&&!ok?'var(--red-bg)':'transparent';
+        var border=isCorrect?'var(--green-border)':wasChosen&&!ok?'var(--red-border)':'var(--border2)';
+        var prefix=isCorrect?'✓ ':wasChosen&&!ok?'✗ ':'';
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;border:1.5px solid '+border+';background:'+bg+';margin-bottom:4px;">'
+          +'<span style="font-weight:800;min-width:20px;">'+LETTERS[ai]+'</span>'
+          +'<span>'+prefix+esc(alt.text)+'</span>'
+          +'</div>';
+      });
+    } else if(wasSkipped){
+      // Period/shapes etc. without alts - show correct answer
+      var correctLabel=q.correctPeriod?getPeriodLabel(q.correctPeriod):(q.shapesMain||'—');
+      html+='<div style="padding:6px 10px;border-radius:6px;border:1.5px solid var(--green-border);background:var(--green-bg);font-weight:600;">✓ '+esc(correctLabel)+'</div>';
+    }
+
+    item.innerHTML=html;
+    list.appendChild(item);
+  });
+}
 function restartQuiz(){
   // Close victory overlay if open
   var vo=document.getElementById('victory-overlay');
