@@ -123,6 +123,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .attempts-badge .att-num{display:inline-block;transition:transform 0.15s;}
 @keyframes att-pop{0%{transform:scale(1);}30%{transform:scale(1.9);}70%{transform:scale(1.5);}100%{transform:scale(1);}}
 @keyframes att-shrink{0%{transform:scale(1);}20%{transform:scale(1.6);}60%{transform:scale(0.85);}100%{transform:scale(1);}}
+@keyframes girofar-yellow{0%,100%{box-shadow:0 0 0 0 rgba(255,180,0,0.7);background:rgba(255,160,0,0.25);}50%{box-shadow:0 0 0 8px rgba(255,180,0,0);background:rgba(255,180,0,0.55);}}
+@keyframes girofar-red{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,0.7);background:rgba(217,48,37,0.25);}50%{box-shadow:0 0 0 10px rgba(220,38,38,0);background:rgba(220,38,38,0.6);}}
+.attempts-badge.girofar-yellow{animation:girofar-yellow 0.6s ease-in-out infinite;color:#7c2d12;}
+.attempts-badge.girofar-red{animation:girofar-red 0.5s ease-in-out infinite;color:#fff;}
 .quiz-img{width:100%;max-height:35vh;object-fit:contain;border-radius:var(--radius-sm);border:0.5px solid var(--border);margin-bottom:14px;background:var(--surface2);display:none;}
 .quiz-text{font-size:16px;line-height:1.55;margin-bottom:16px;}
 .alt-btn{width:100%;text-align:left;padding:13px 15px;margin-bottom:8px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:var(--surface);cursor:pointer;font-size:15px;color:var(--text);font-family:inherit;-webkit-appearance:none;display:flex;align-items:center;gap:10px;transition:background 0.12s;}
@@ -1998,7 +2002,6 @@ function puzzleWrongAttempt(){
   currentAttempts++;
   answers[currentQIdx].attempts=currentAttempts;
   var rem=quizCfg.attempts-currentAttempts;
-  var badge=document.getElementById('attempts-badge');
 
   if(rem<=0){
     // No more attempts — end puzzle as wrong
@@ -2009,31 +2012,25 @@ function puzzleWrongAttempt(){
     return;
   }
 
-  // Warning sounds & badge colors
+  setAttemptsBadgeAlert(rem);
+  updateAttemptsBadge(true);
+}
+// based on how many attempts remain. Call this after every wrong answer.
+function setAttemptsBadgeAlert(rem){
+  var badge=document.getElementById('attempts-badge');
+  if(!badge)return;
+  badge.classList.remove('girofar-yellow','girofar-red');
   if(rem===1){
-    // DANGER: 1 attempt left — red + urgent sound
     playDanger();
-    if(badge){
-      badge.style.background='rgba(217,48,37,0.25)';
-      badge.style.color='var(--red)';
-      badge.style.animation='none';void badge.offsetWidth;
-      badge.style.animation='att-pop 0.4s ease-in-out 3';
-    }
-    showEmoji('⚠️');
+    badge.classList.add('girofar-red');
+    showEmoji('🚨');
   } else if(rem===2){
-    // CAUTION: 2 attempts left — yellow + warning sound
     playWarning();
-    if(badge){
-      badge.style.background='rgba(255,160,0,0.25)';
-      badge.style.color='#d97706';
-      badge.style.animation='none';void badge.offsetWidth;
-      badge.style.animation='att-pop 0.4s ease-in-out 2';
-    }
+    badge.classList.add('girofar-yellow');
     showEmoji('⚠️');
   } else {
     playError();
   }
-  updateAttemptsBadge(true);
 }
 
 function playWarning(){
@@ -3332,6 +3329,9 @@ function renderQuizQ(){
     answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});
   }
   currentAttempts=answers[currentQIdx].attempts||0;
+  // Reset attempts badge alert state for new question
+  var _abadge=document.getElementById('attempts-badge');
+  if(_abadge)_abadge.classList.remove('girofar-yellow','girofar-red');
 
   var counterEl=document.getElementById('q-counter-text');
   if(counterEl)counterEl.textContent='Questão '+(currentQIdx+1)+' de '+total;
@@ -3497,11 +3497,14 @@ function updateAttemptsBadge(animate){
   var cfg=getQCfg(quizOrder[currentQIdx]);
   var rem=cfg.attempts-currentAttempts;
   if(rem<0)rem=0;
-  // Color shifts as attempts decrease
-  var pct=cfg.attempts>0?rem/cfg.attempts:1;
-  if(pct>0.6){badge.style.background='var(--amber-bg)';badge.style.color='var(--amber-text)';}
-  else if(pct>0.3){badge.style.background='rgba(255,120,0,0.15)';badge.style.color='#d97706';}
-  else{badge.style.background='rgba(217,48,37,0.15)';badge.style.color='var(--red)';}
+  // Color shifts as attempts decrease — but skip if girofar alert is active (it controls its own colors)
+  var hasGirofar=badge.classList.contains('girofar-yellow')||badge.classList.contains('girofar-red');
+  if(!hasGirofar){
+    var pct=cfg.attempts>0?rem/cfg.attempts:1;
+    if(pct>0.6){badge.style.background='var(--amber-bg)';badge.style.color='var(--amber-text)';}
+    else if(pct>0.3){badge.style.background='rgba(255,120,0,0.15)';badge.style.color='#d97706';}
+    else{badge.style.background='rgba(217,48,37,0.15)';badge.style.color='var(--red)';}
+  }
   badge.innerHTML='🎯 <span class="att-num" id="att-num">'+rem+'</span> tentativa'+(rem!==1?'s':'');
   if(animate){
     var numEl=document.getElementById('att-num');
@@ -3668,7 +3671,9 @@ function selectNumber(chosen,n1,n2){
     } else {
       // Has attempts left — flash wrong, reset, let retry
       answers[currentQIdx].chosen=chosen;
-      playError();showEmoji('❌');journeyWrongAnswer();
+      journeyWrongAnswer();
+      var rem=cfg.attempts-currentAttempts;
+      setAttemptsBadgeAlert(rem);
       updateAttemptsBadge(true);
       setTimeout(function(){
         answers[currentQIdx].chosen=-1;
@@ -3829,8 +3834,9 @@ function selectAlt(i){
       // Blink nav buttons to guide player
       setTimeout(function(){blinkNav();},600);
     } else {
-      playError();showEmoji('❌');
       journeyWrongAnswer();
+      var rem=quizCfg.attempts-currentAttempts;
+      setAttemptsBadgeAlert(rem);
       updateAttemptsBadge(true);
       var btns=document.querySelectorAll('.alt-btn');
       if(btns[i]){btns[i].classList.add('wrong');setTimeout(function(){
@@ -3952,7 +3958,7 @@ function buildResults(){
     } else if(qtype==='shapes'){
       html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',100)+'</div>';
     } else if(qtype==='number'&&q.num1!==undefined){
-      html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:10px;">'+q.num1+' ou '+q.num2+'</div>';
+      html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:10px;display:flex;justify-content:center;gap:40px;"><span>'+q.num1+'</span><span>'+q.num2+'</span></div>';
     } else if(qtype==='words'&&q.wordsText){
       html+='<div style="text-align:center;font-size:32px;font-weight:900;margin-bottom:10px;color:var(--blue);">'+esc(q.wordsText)+'</div>';
     } else if(q.photo&&typeof q.photo==='string'&&q.photo.length>10){
@@ -3972,6 +3978,21 @@ function buildResults(){
         html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;border:1.5px solid '+border+';background:'+bg+';margin-bottom:4px;">'
           +'<span style="font-weight:800;min-width:20px;">'+LETTERS[ai]+'</span>'
           +'<span>'+prefix+esc(alt.text)+'</span>'
+          +'</div>';
+      });
+    } else if(qtype==='number'&&q.num1!==undefined){
+      // Synthetic alts for number comparison: A=num1, B=num2
+      var n1=q.num1, n2=q.num2;
+      var nCi=n1>n2?0:1;
+      [n1,n2].forEach(function(n,ai){
+        var isCorrect=(ai===nCi);
+        var wasChosen=(ai===ans.chosen);
+        var bg=isCorrect?'var(--green-bg)':wasChosen&&!ok?'var(--red-bg)':'transparent';
+        var border=isCorrect?'var(--green-border)':wasChosen&&!ok?'var(--red-border)':'var(--border2)';
+        var prefix=isCorrect?'✓ ':wasChosen&&!ok?'✗ ':'';
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;border:1.5px solid '+border+';background:'+bg+';margin-bottom:4px;">'
+          +'<span style="font-weight:800;min-width:20px;">'+LETTERS[ai]+'</span>'
+          +'<span>'+prefix+n+'</span>'
           +'</div>';
       });
     } else if(wasSkipped){
