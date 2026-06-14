@@ -1371,7 +1371,8 @@ function showScreen(name){
   } else if(name==='quiz-detail'){
     act.innerHTML='<button class="btn btn-sm" onclick="showScreen(\'admin\')">← Admin</button>'+badge;
   } else if(name==='add'){
-    act.innerHTML='<button class="btn btn-sm" onclick="cancelEditQuestion()">← Voltar</button>'+badge;
+    var voltarAction=editingQIdx!==null?"confirmCancelEdit()":"cancelEditQuestion()";
+    act.innerHTML='<button class="btn btn-sm" onclick="'+voltarAction+'">← Voltar</button>'+badge;
   } else {
     updateTopbar();
   }
@@ -1714,8 +1715,16 @@ function editQuestion(i){
   showScreen('add');
 }
 
+function confirmCancelEdit(){
+  showModal('<h2>Sair sem salvar?</h2><p>As alterações feitas nesta questão não serão salvas.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="closeModal();cancelEditQuestion();">Sair sem salvar</button><button class="btn btn-sm" onclick="closeModal()">Continuar editando</button></div>');
+}
 function cancelEditQuestion(){editingQIdx=null;currentPhotoData=null;currentAlts=[];resetAddForm();openQuizDetail(activeQuizId);}
 function discardQuestion(){
+  if(editingQIdx!==null){
+    // Editing an existing question — confirm and go back without saving
+    showModal('<h2>Descartar alterações?</h2><p>As alterações feitas nesta questão não serão salvas.</p><div class="row"><button class="btn btn-danger btn-sm" onclick="closeModal();cancelEditQuestion();">Descartar e voltar</button><button class="btn btn-sm" onclick="closeModal()">Continuar editando</button></div>');
+    return;
+  }
   editingQIdx=null;currentPhotoData=null;currentAlts=[];
   resetAddForm();
   var quiz=getQuiz(activeQuizId);
@@ -2351,6 +2360,23 @@ function renderCompareQuestion(q){
     display.appendChild(row);
   }
   ae.innerHTML='';
+
+  // Fallback for old questions saved without alts: generate Sim/Não based on op
+  if(!q.alts||!q.alts.length){
+    var isEqual;
+    if(ctype==='shape'){
+      isEqual=(q.compareShapeA||'circle')===(q.compareShapeB||'square')&&(q.compareColorA||'')===(q.compareColorB||'');
+    } else {
+      isEqual=false; // can't determine for images, default to "Não"
+    }
+    if(op==='igual'){
+      q.alts=[{text:'Sim',correct:isEqual},{text:'Não',correct:!isEqual}];
+    } else {
+      // maior/menor — generic fallback
+      q.alts=[{text:'A',correct:true},{text:'B',correct:false}];
+    }
+  }
+
   renderQuizAlts(answers[currentQIdx].chosen!==-1);
 }
 
@@ -2746,6 +2772,17 @@ function renderShapesQuestion(q){
   // Draw the shape in the display area
   if(display)display.innerHTML='<div style="display:flex;justify-content:center;margin-bottom:8px;">'+drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',Math.min(200,window.innerWidth*0.5))+'</div>';
   ae.innerHTML='';
+
+  // Fallback for old questions saved without alts: generate A/B options
+  if(!q.alts||!q.alts.length){
+    var allShapes={circle:'Círculo',square:'Quadrado',triangle:'Triângulo',rectangle:'Retângulo',star:'Estrela',heart:'Coração',diamond:'Losango'};
+    var correctShape=q.shapesMain||'circle';
+    var others=Object.keys(allShapes).filter(function(s){return s!==correctShape;});
+    var wrongShape=others[Math.floor(Math.random()*others.length)]||'square';
+    q.alts=[{text:allShapes[correctShape],correct:true},{text:allShapes[wrongShape],correct:false}];
+    // Shuffle so correct isn't always first
+    if(Math.random()<0.5)q.alts.reverse();
+  }
 
   // If voiceAnswer is enabled, do NOT render the shape as clickable alternatives
   var isVoice=q.cfg&&q.cfg.voiceAnswer;
@@ -4675,3 +4712,4 @@ async function addUserFromModal(){
 </script>
 </body>
 </html>
+
