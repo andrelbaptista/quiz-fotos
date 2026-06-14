@@ -547,7 +547,18 @@
         }
       ],
       "goalEmoji": "dds",
-      "goalImg": null
+      "goalImg": null,
+      "results": {
+        "master": [
+          {
+            "date": "2026-06-14T21:15:56.110Z",
+            "correct": 4,
+            "total": 4,
+            "pct": 100,
+            "username": "master"
+          }
+        ]
+      }
     }
   ],
   "users": [
