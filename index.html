@@ -508,9 +508,9 @@ svg.hist-chart{display:block;max-width:100%;}
           </div>
           <div id="num-compare-wrap">
             <div class="row">
-              <div class="field" style="flex:1;"><label>Número 1</label><input type="number" id="num1-val" value="1" min="0" max="9999" oninput="updateNumberPreview()"></div>
+              <div class="field" style="flex:1;"><label>Número 1</label><input type="number" id="num1-val" value="1" min="0" max="9999" oninput="updateNumberConfig()"></div>
               <div style="padding-top:28px;font-size:20px;font-weight:700;color:var(--text2);">vs</div>
-              <div class="field" style="flex:1;"><label>Número 2</label><input type="number" id="num2-val" value="3" min="0" max="9999" oninput="updateNumberPreview()"></div>
+              <div class="field" style="flex:1;"><label>Número 2</label><input type="number" id="num2-val" value="3" min="0" max="9999" oninput="updateNumberConfig()"></div>
             </div>
             <div class="field"><label>Operação</label>
               <select id="num-op">
@@ -2402,7 +2402,7 @@ function setCorrect(i){currentAlts.forEach(function(a,idx){a.correct=(idx===i);}
 function saveQuestion(){
   var qtype=currentQType||'photo';
   // Validation depends on type
-  if(qtype==='photo'||qtype==='clock'||qtype==='money'){
+  if(['photo','clock','money','doc','words','shapes','number','compare'].indexOf(qtype)!==-1){
     var texts=currentAlts.map(function(a){return a.text.trim();});
     if(texts.some(function(t){return !t;})){showError('Preencha todas as alternativas ou remova as vazias antes de salvar.');return;}
     if(!currentAlts.some(function(a){return a.correct;})){showError('Marque qual alternativa é a correta antes de salvar.');return;}
@@ -2415,7 +2415,7 @@ function saveQuestion(){
     qtype:qtype,
     photo:currentPhotoData,
     text:document.getElementById('q-text').value.trim(),
-    alts:(qtype==='photo'||qtype==='clock'||qtype==='money')?currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}):undefined,
+    alts:(['photo','clock','money','doc','words','shapes','number','compare'].indexOf(qtype)!==-1)?currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}):undefined,
     cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value,voiceRead:voiceRead,voiceAnswer:voiceAnswer}
   };
   // Type-specific config
@@ -3689,6 +3689,22 @@ function renderMoneyQuestion(q){
   var mode=q.moneyMode||'single';
   var currency=q.moneyCurrency||'BRL';
   var noteMaxW=Math.min(280, Math.round((window.innerWidth||390)*0.7));
+
+  // Show default title if question has no custom text
+  if(!q.text){
+    var titleBox=document.getElementById('quiz-title-box');
+    var textEl=document.getElementById('quiz-text');
+    var defaultTitle=mode==='compare'
+      ?'Compare as notas e responda.'
+      :'Qual é o valor desta nota?';
+    if(titleBox&&textEl){
+      titleBox.style.display='block';
+      titleBox.className='quiz-title-box has-text';
+      window._currentSpeakText=defaultTitle;
+      textEl.innerHTML=esc(defaultTitle)+' <button class="speak-btn" onclick="speak(window._currentSpeakText)" title="Ouvir">🔊</button>';
+    }
+  }
+
   if(mode==='compare'){
     var v2=q.moneyValue2||20;
     var op=q.moneyOp||'maior';
