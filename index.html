@@ -377,10 +377,10 @@ svg.hist-chart{display:block;max-width:100%;}
     </div>
     <div id="login-err" class="login-err"></div>
     <form onsubmit="doLogin();return false;" autocomplete="on">
-    <div class="field"><label>Usuário</label><input type="text" id="login-user" placeholder="seu usuário" autocomplete="username"></div>
-    <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <div class="field"><label>Usuário</label><input type="text" id="login-user" placeholder="seu usuário" autocomplete="username" data-1p-ignore data-lpignore="true" data-bwignore="true" data-form-type="other"></div>
+    <div class="field"><label>Senha</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" data-1p-ignore data-lpignore="true" data-bwignore="true" data-form-type="other"></div>
     <div id="register-fields" style="display:none;">
-      <div class="field"><label>Confirmar senha</label><input type="password" id="login-pass2" placeholder="••••••••" autocomplete="new-password"></div>
+      <div class="field"><label>Confirmar senha</label><input type="password" id="login-pass2" placeholder="••••••••" autocomplete="new-password" data-1p-ignore data-lpignore="true" data-bwignore="true" data-form-type="other"></div>
     </div>
     <button class="btn btn-primary btn-block" id="btn-login-submit" type="submit">Entrar</button>
     </form>
@@ -865,7 +865,7 @@ svg.hist-chart{display:block;max-width:100%;}
           <div class="field"><label>Arquivo de dados</label><input type="text" id="cfg-file" placeholder="ex: quiz-data.json"></div>
           <div class="field">
             <label>Token de acesso</label>
-            <form onsubmit="return false;"><input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off"></form>
+            <form onsubmit="return false;"><input type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" data-1p-ignore data-lpignore="true" data-bwignore="true" data-form-type="other"></form>
             <p style="font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5;">GitHub → Settings → Developer settings → Personal access tokens → marque <strong>repo</strong></p>
           </div>
           <div class="divider"></div>
@@ -4617,9 +4617,9 @@ function renderUsersList(){
 function changePasswordModal(un){
   showModal("<h2>Alterar senha</h2><p>Usuário: <strong>"+esc(un)+"</strong></p>"+
     "<div class=\"field\" style=\"margin-bottom:12px;\"><label>Nova senha</label>"+
-    "<input type=\"password\" id=\"new-pwd\" placeholder=\"mínimo 4 caracteres\"></div>"+
+    "<input type=\"password\" id=\"new-pwd\" placeholder=\"mínimo 4 caracteres\" autocomplete=\"new-password\" data-1p-ignore data-lpignore=\"true\" data-bwignore=\"true\" data-form-type=\"other\"></div>"+
     "<div class=\"field\" style=\"margin-bottom:16px;\"><label>Confirmar</label>"+
-    "<input type=\"password\" id=\"new-pwd2\" placeholder=\"repita a senha\"></div>"+
+    "<input type=\"password\" id=\"new-pwd2\" placeholder=\"repita a senha\" autocomplete=\"new-password\" data-1p-ignore data-lpignore=\"true\" data-bwignore=\"true\" data-form-type=\"other\"></div>"+
     "<div class=\"row\"><button class=\"btn btn-primary btn-sm\" onclick=\"doChangePassword('"+esc(un)+"')\">✓ Alterar</button>"+
     "<button class=\"btn btn-sm\" onclick=\"closeModal()\">Cancelar</button></div>");
 }
@@ -4690,7 +4690,7 @@ function saveUserAccess(username){
 function showAddUserModal(){
   showModal("<h2>Adicionar usuário</h2>"+
     "<div class=\"field\" style=\"margin-bottom:12px;\"><label>Usuário</label><input type=\"text\" id=\"new-uname\"></div>"+
-    "<div class=\"field\" style=\"margin-bottom:16px;\"><label>Senha</label><input type=\"password\" id=\"new-upass\"></div>"+
+    "<div class=\"field\" style=\"margin-bottom:16px;\"><label>Senha</label><input type=\"password\" id=\"new-upass\" autocomplete=\"new-password\" data-1p-ignore data-lpignore=\"true\" data-bwignore=\"true\" data-form-type=\"other\"></div>"+
     "<div class=\"row\"><button class=\"btn btn-primary btn-sm\" onclick=\"addUserFromModal()\">✓ Adicionar</button>"+
     "<button class=\"btn btn-sm\" onclick=\"closeModal()\">Cancelar</button></div>");
 }
