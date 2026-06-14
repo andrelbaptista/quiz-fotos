@@ -2604,31 +2604,30 @@ function drawDigitalClock(hour, minute){
 function drawShape(shape, color, size){
   size=size||180;
   var cx=size/2, cy=size/2, r=size*0.38;
-  var svgStart='<svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" xmlns="http://www.w3.org/2000/svg">';
-  var shadow='<filter id="sh"><feDropShadow dx="2" dy="4" stdDeviation="4" flood-opacity="0.25"/></filter>';
+  var svgStart='<svg viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(2px 4px 4px rgba(0,0,0,0.25));">';
   var el='';
   if(shape==='circle'){
-    el='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+color+'" filter="url(#sh)"/>';
+    el='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+color+'"/>';
   } else if(shape==='square'){
-    var s=r*1.6; el='<rect x="'+(cx-s/2)+'" y="'+(cy-s/2)+'" width="'+s+'" height="'+s+'" rx="8" fill="'+color+'" filter="url(#sh)"/>';
+    var s=r*1.6; el='<rect x="'+(cx-s/2)+'" y="'+(cy-s/2)+'" width="'+s+'" height="'+s+'" rx="8" fill="'+color+'"/>';
   } else if(shape==='triangle'){
     var h=r*1.8;
     var pts=(cx)+','+(cy-h*0.6)+' '+(cx-h*0.6)+','+(cy+h*0.4)+' '+(cx+h*0.6)+','+(cy+h*0.4);
-    el='<polygon points="'+pts+'" fill="'+color+'" filter="url(#sh)"/>';
+    el='<polygon points="'+pts+'" fill="'+color+'"/>';
   } else if(shape==='rectangle'){
-    el='<rect x="'+(cx-r*1.5)+'" y="'+(cy-r*0.8)+'" width="'+(r*3)+'" height="'+(r*1.6)+'" rx="8" fill="'+color+'" filter="url(#sh)"/>';
+    el='<rect x="'+(cx-r*1.5)+'" y="'+(cy-r*0.8)+'" width="'+(r*3)+'" height="'+(r*1.6)+'" rx="8" fill="'+color+'"/>';
   } else if(shape==='star'){
     var pts2='',n=5,or=r,ir=r*0.4;
     for(var i=0;i<n*2;i++){var a=i*Math.PI/n-Math.PI/2,rad=i%2===0?or:ir;pts2+=(cx+rad*Math.cos(a))+','+(cy+rad*Math.sin(a))+' ';}
-    el='<polygon points="'+pts2+'" fill="'+color+'" filter="url(#sh)"/>';
+    el='<polygon points="'+pts2+'" fill="'+color+'"/>';
   } else if(shape==='heart'){
     var s2=r*0.55;
-    el='<path d="M'+cx+','+(cy+r*0.5)+' C'+(cx-r*1.2)+','+(cy-r*0.3)+' '+(cx-r*1.5)+','+(cy-r*1.2)+' '+cx+','+(cy-r*0.5)+' C'+(cx+r*1.5)+','+(cy-r*1.2)+' '+(cx+r*1.2)+','+(cy-r*0.3)+' '+cx+','+(cy+r*0.5)+'Z" fill="'+color+'" filter="url(#sh)"/>';
+    el='<path d="M'+cx+','+(cy+r*0.5)+' C'+(cx-r*1.2)+','+(cy-r*0.3)+' '+(cx-r*1.5)+','+(cy-r*1.2)+' '+cx+','+(cy-r*0.5)+' C'+(cx+r*1.5)+','+(cy-r*1.2)+' '+(cx+r*1.2)+','+(cy-r*0.3)+' '+cx+','+(cy+r*0.5)+'Z" fill="'+color+'"/>';
   } else if(shape==='diamond'){
     var pts3=cx+','+(cy-r)+' '+(cx+r*1.2)+','+cy+' '+cx+','+(cy+r)+' '+(cx-r*1.2)+','+cy;
-    el='<polygon points="'+pts3+'" fill="'+color+'" filter="url(#sh)"/>';
+    el='<polygon points="'+pts3+'" fill="'+color+'"/>';
   }
-  return svgStart+'<defs>'+shadow+'</defs>'+el+'</svg>';
+  return svgStart+el+'</svg>';
 }
 
 function updateShapesPreview(){
@@ -4712,4 +4711,3 @@ async function addUserFromModal(){
 </script>
 </body>
 </html>
-
