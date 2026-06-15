@@ -811,7 +811,8 @@
           },
           "wordsText": "André, número 1,  João, número 1, Azul, Vermelho, número 1",
           "wordsFontsize": 48,
-          "wordsColor": "#0071e3"
+          "wordsColor": "#0071e3",
+          "wordsHideUntilAnswer": true
         }
       ],
       "goalEmoji": "🏆",
