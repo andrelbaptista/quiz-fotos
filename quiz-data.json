@@ -416,6 +416,16 @@
           }
         ]
       }
+    },
+    {
+      "id": "1781522776071",
+      "name": "jack_novo",
+      "createdBy": "master",
+      "accessAll": true,
+      "accessUsers": [],
+      "questions": [],
+      "goalEmoji": "Coração",
+      "goalImg": null
     }
   ],
   "users": [
