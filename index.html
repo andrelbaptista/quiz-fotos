@@ -664,6 +664,10 @@ svg.hist-chart{display:block;max-width:100%;}
             </select>
           </div>
           <div id="words-preview" style="text-align:center;padding:20px;margin-bottom:10px;background:var(--surface2);border-radius:var(--radius-sm);"></div>
+          <label class="checkbox-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <input type="checkbox" id="words-hide-until-answer">
+            <span>🙈 Esconder o texto — jogador só ouve (🔊) e responde; o texto aparece após responder</span>
+          </label>
           <p style="font-size:12px;color:var(--text2);">A jogadora verá a palavra e escolherá a resposta nas alternativas.</p>
         </div>
 
@@ -1166,7 +1170,7 @@ function enterApp(){
     var firstPlay=document.querySelector('#quiz-list .btn-green');
     if(firstPlay)blinkEl(firstPlay,'success',4);
   },800);
-  loadFromGitHub(); // all users load from GitHub on login
+  loadFromGitHub(function(){renderQuizList();}); // refresh with latest data, then re-render
   updateTopbar();
   checkUrlQuiz();
   checkInstallBanner();
@@ -1253,7 +1257,7 @@ function loadCfgForm(){
   if(t)t.value=c.token||'';
 }
 function testConnection(){if(!hasCfg()){toast('Salve a configuração primeiro.');return;}setSyncBar('loading','🔗 Testando...');fetch('https://api.github.com/repos/'+getCfg().user+'/'+getCfg().repo,{headers:ghH()}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(){setSyncBar('synced','✓ Conexão OK!');toast('OK ✓');}).catch(function(e){setSyncBar('error','✗ '+e.message);});}
-function loadFromGitHub(){
+function loadFromGitHub(onDone){
   setSyncBar('loading','⏳ Carregando...');
   var cfg=getCfg();
   // Use hardcoded repo info for reading (public repo, no token needed)
@@ -1293,11 +1297,13 @@ function loadFromGitHub(){
         saveUsers(merged);
       }
       saveLS();renderQuizList();
+      if(typeof onDone==='function')onDone();
     })
     .catch(function(e){
       setSyncBar('error','❌ Erro ao carregar do GitHub: '+e.message);
       // Keep local data on error
       renderQuizList();
+      if(typeof onDone==='function')onDone();
     });
   // Also get SHA for future saves (needs token)
   if(hasCfg()){
@@ -1720,6 +1726,7 @@ function editQuestion(i){
       var wt=document.getElementById('words-text');if(wt){wt.value=q.wordsText||'';wt.oninput=updateWordsPreview;}
       var wf=document.getElementById('words-fontsize');if(wf)wf.value=q.wordsFontsize||48;
       var wc=document.getElementById('words-color');if(wc)wc.value=q.wordsColor||'#0071e3';
+      var whu=document.getElementById('words-hide-until-answer');if(whu)whu.checked=!!q.wordsHideUntilAnswer;
       updateWordsPreview();
     } else if(qtype==='doc'){
       var dt=document.getElementById('doc-text');if(dt)dt.value=q.docText||'';
@@ -2426,6 +2433,7 @@ function resetAddForm(){
   var pr=document.getElementById('puzzle-rows');if(pr)pr.value=3;
   var pm=document.getElementById('puzzle-missing');if(pm)pm.value=3;
   var per=document.getElementById('period-correct');if(per)per.value='manha';
+  var whu=document.getElementById('words-hide-until-answer');if(whu)whu.checked=false;
   var bar=document.getElementById('qtype-info-bar');if(bar)bar.style.display='none';
   closeMsg();
   currentQType='';
@@ -2501,7 +2509,7 @@ function saveQuestion(){
     q.compareColorB=document.getElementById('compare-color-b')?document.getElementById('compare-color-b').value:'#d93025';
     q.compareSizeB=document.getElementById('compare-size-b')?document.getElementById('compare-size-b').value:'medium';
   }
-  if(qtype==='words'){q.wordsText=document.getElementById('words-text')?document.getElementById('words-text').value:'';q.wordsFontsize=parseInt(document.getElementById('words-fontsize')?document.getElementById('words-fontsize').value:48)||48;q.wordsColor=document.getElementById('words-color')?document.getElementById('words-color').value:'#0071e3';}
+  if(qtype==='words'){q.wordsText=document.getElementById('words-text')?document.getElementById('words-text').value:'';q.wordsFontsize=parseInt(document.getElementById('words-fontsize')?document.getElementById('words-fontsize').value:48)||48;q.wordsColor=document.getElementById('words-color')?document.getElementById('words-color').value:'#0071e3';q.wordsHideUntilAnswer=!!(document.getElementById('words-hide-until-answer')&&document.getElementById('words-hide-until-answer').checked);}
   if(qtype==='doc'){q.docText=document.getElementById('doc-text')?document.getElementById('doc-text').value:'';q.docFontsize=parseInt(document.getElementById('doc-fontsize')?document.getElementById('doc-fontsize').value:16)||16;}
   // For types that need image generation, render to canvas first
   var needsImg=['clock','number','money','shapes','words','period'];
@@ -2805,11 +2813,28 @@ function renderWordsQuestion(q){
   var ae=document.getElementById('quiz-alts');
   var size=q.wordsFontsize||48;
   var color=q.wordsColor||'#0071e3';
-  if(display)display.innerHTML='<div style="text-align:center;padding:20px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;"><span style="font-size:'+size+'px;font-weight:900;color:'+color+';line-height:1.2;">'+esc(q.wordsText||'')+'</span></div>';
   ae.innerHTML='';
-  renderQuizAlts(false);
-  // Auto-speak the word
-  if(q.wordsText)setTimeout(function(){speak(q.wordsText);},300);
+  var ans=answers[currentQIdx];
+  var locked=ans&&ans.chosen!==-1&&(ans.correct||(quizCfg.attempts!==0&&ans.attempts>=quizCfg.attempts));
+  if(q.wordsHideUntilAnswer&&!locked){
+    // Hide the text - show only a play button the player can tap repeatedly
+    if(display)display.innerHTML='<div style="text-align:center;padding:30px 20px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;">'+
+      '<button id="words-play-btn" class="btn btn-primary" style="font-size:40px;padding:18px 28px;border-radius:50%;animation:pulse-attention 1.6s infinite;" onclick="speak(activeQuestions[quizOrder[currentQIdx]].wordsText)">🔊</button>'+
+      '<div style="margin-top:10px;font-size:13px;color:var(--text2);">Toque para ouvir</div>'+
+      '</div>';
+  } else {
+    // Show the text normally
+    if(display)display.innerHTML='<div style="text-align:center;padding:20px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;"><span style="font-size:'+size+'px;font-weight:900;color:'+color+';line-height:1.2;">'+esc(q.wordsText||'')+'</span></div>';
+    // Auto-speak the word only when shown immediately (not in hide mode)
+    if(!q.wordsHideUntilAnswer&&q.wordsText)setTimeout(function(){speak(q.wordsText);},300);
+  }
+  renderQuizAlts(locked);
+}
+function revealWordsText(q){
+  var display=document.getElementById('quiz-type-display');
+  var size=q.wordsFontsize||48;
+  var color=q.wordsColor||'#0071e3';
+  if(display)display.innerHTML='<div style="text-align:center;padding:20px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;"><span style="font-size:'+size+'px;font-weight:900;color:'+color+';line-height:1.2;">'+esc(q.wordsText||'')+'</span></div>';
 }
 
 function renderDocQuestion(q){
@@ -3904,6 +3929,7 @@ function selectAlt(i){
     answers[currentQIdx].chosen=i;answers[currentQIdx].correct=true;answers[currentQIdx].attempts=currentAttempts+1;
     playSuccess();showEmoji('✅');
     journeyCorrectAnswer();
+    if(q.qtype==='words'&&q.wordsHideUntilAnswer)revealWordsText(q);
     renderQuizAlts(true);renderQuizNav(true);
     setTimeout(function(){blinkNav();},500);
   } else {
@@ -3912,6 +3938,7 @@ function selectAlt(i){
       answers[currentQIdx].correct=false;
       playError();showEmoji('❌');
       journeyWrongAnswer();
+      if(q.qtype==='words'&&q.wordsHideUntilAnswer)revealWordsText(q);
       renderQuizAlts(true);renderQuizNav(true);
       // Blink nav buttons to guide player
       setTimeout(function(){blinkNav();},600);
