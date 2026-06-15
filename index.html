@@ -1326,12 +1326,19 @@ function syncToGitHub(){
     setSyncBar('unsynced','⚠️ GitHub não configurado — vá em Admin → GitHub');
     return;
   }
+  doSyncToGitHub(true);
+}
 
+function doSyncToGitHub(allowRetry){
   setSyncBar('loading','⏳ Salvando no GitHub...');
   fetch(ghUrl(),{headers:ghH(),cache:'no-store'})
-    .then(function(r){if(r.ok)return r.json();return null;})
+    .then(function(r){
+      if(r.status===404)return null; // file doesn't exist yet, ok to create
+      if(!r.ok)throw new Error('Falha ao obter versão atual (HTTP '+r.status+')');
+      return r.json();
+    })
     .then(function(data){
-      if(data&&data.sha)ghSha=data.sha;
+      ghSha=(data&&data.sha)?data.sha:null;
       // Include users in sync (hashes are safe - SHA256 is one-way)
       var payload={version:5,quizzes:quizzes,users:getUsers()};
       var cnt=btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
@@ -1339,7 +1346,10 @@ function syncToGitHub(){
       if(ghSha)body.sha=ghSha;
       return fetch(ghUrl(),{method:'PUT',headers:ghH(),body:JSON.stringify(body)});
     })
-    .then(function(r){if(!r.ok)return r.json().then(function(e){throw new Error(e.message);});return r.json();})
+    .then(function(r){
+      if(!r.ok)return r.json().then(function(e){var err=new Error(e.message);err.status=r.status;throw err;});
+      return r.json();
+    })
     .then(function(data){
       ghSha=data.content.sha;isDirty=false;
       setSyncBar('synced','✅ Salvo no GitHub — todos os dispositivos sincronizados');
@@ -1347,6 +1357,12 @@ function syncToGitHub(){
       renderQuizList();
     })
     .catch(function(e){
+      // SHA conflict (409) — refresh sha and retry once automatically
+      if(allowRetry&&(e.status===409||/does not match/i.test(e.message))){
+        setSyncBar('loading','⏳ Sincronizando versão mais recente, tentando novamente...');
+        setTimeout(function(){doSyncToGitHub(false);},400);
+        return;
+      }
       setSyncBar('error','❌ Erro: '+e.message);showError('Erro ao salvar no GitHub: '+e.message+'. Verifique o token em Admin → GitHub.');
       toast('❌ Erro GitHub: '+e.message,4000);
     });
@@ -1632,7 +1648,6 @@ function editQuestion(i){
   var q=getQuiz(activeQuizId).questions[i];
   resetAddForm();
   currentPhotoData=q.photo||null;
-  currentAlts=q.alts?q.alts.map(function(a){return{text:a.text,correct:a.correct};}):[];
   var qtext=document.getElementById('q-text');if(qtext)qtext.value=q.text||'';
   var ca=document.getElementById('cfg-attempts');if(ca)ca.value=(q.cfg&&q.cfg.attempts!==undefined)?q.cfg.attempts:0;
   var cr=document.getElementById('cfg-result');if(cr)cr.value=(q.cfg&&q.cfg.result)?q.cfg.result:'score';
@@ -1644,6 +1659,13 @@ function editQuestion(i){
   if(rmw)rmw.style.display=currentPhotoData?'flex':'none';
   var qtype=q.qtype||'photo';
   setQType(qtype);
+  // Load saved alternatives AFTER setQType, since setQType wipes currentAlts
+  // when switching types during edit (and adds 2 empty placeholders).
+  currentAlts=q.alts?q.alts.map(function(a){return{text:a.text,correct:a.correct};}):[];
+  if(['photo','clock','money','doc','words','shapes','number','compare'].indexOf(qtype)!==-1){
+    if(currentAlts.length===0){addAlt();addAlt();}
+    else renderAlts();
+  }
   setTimeout(function(){
     if(qtype==='clock'){
       var ch=document.getElementById('clock-hour');if(ch)ch.value=q.clockHour!==undefined?q.clockHour:10;
