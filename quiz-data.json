@@ -621,7 +621,7 @@
           "alts": [
             {
               "text": "As formas são iguais",
-              "correct": true
+              "correct": false
             },
             {
               "text": "As formas são diferentes",
@@ -629,7 +629,7 @@
             },
             {
               "text": "As cores são diferentes e as formas também são diferentes",
-              "correct": false
+              "correct": true
             },
             {
               "text": "As cores são diferentes",
