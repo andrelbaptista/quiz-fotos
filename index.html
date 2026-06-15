@@ -4039,6 +4039,20 @@ function buildResults(){
       html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawMoneyNote(mv,q.moneyCurrency||'BRL',true)+'</div>';
     } else if(qtype==='shapes'){
       html+='<div style="display:flex;justify-content:center;margin-bottom:10px;">'+drawShape(q.shapesMain||'circle',q.shapesColor||'#0071e3',100)+'</div>';
+    } else if(qtype==='number'&&q.numberMode==='calc'){
+      var calcOpSym={'+':'+','-':'−','×':'×','÷':'÷'}[q.calcOp||'+']||'+';
+      var calcResult;
+      var cA=q.calcA||2,cB=q.calcB||3;
+      if(q.calcOp==='+')calcResult=cA+cB;
+      else if(q.calcOp==='-')calcResult=cA-cB;
+      else if(q.calcOp==='×')calcResult=cA*cB;
+      else if(q.calcOp==='÷')calcResult=cB!==0?(cA/cB):0;
+      else calcResult=cA+cB;
+      html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:10px;">'+cA+' '+calcOpSym+' '+cB+' = '+calcResult+'</div>';
+    } else if(qtype==='number'&&q.numberMode==='exact'){
+      html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:10px;">'+(q.numExact!==undefined?q.numExact:7)+'</div>';
+    } else if(qtype==='number'&&q.numberMode==='range'){
+      html+='<div style="text-align:center;font-size:24px;font-weight:900;color:var(--blue);margin-bottom:10px;">'+(q.numRangeMin!==undefined?q.numRangeMin:1)+' — '+(q.numRangeMax!==undefined?q.numRangeMax:10)+'</div>';
     } else if(qtype==='number'&&q.num1!==undefined){
       html+='<div style="text-align:center;font-size:36px;font-weight:900;color:var(--blue);margin-bottom:10px;display:flex;justify-content:center;gap:40px;"><span>'+q.num1+'</span><span>'+q.num2+'</span></div>';
     } else if(qtype==='words'&&q.wordsText){
