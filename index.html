@@ -2351,14 +2351,9 @@ function renderCompareQuestion(q){
   var display=document.getElementById('quiz-type-display');
   var ae=document.getElementById('quiz-alts');
   var op=q.compareOp||'igual';
-  var opLabels={igual:'São iguais?',maior:'Qual é maior?',menor:'Qual é menor?'};
   var ctype=q.compareType||'shape';
   if(display){
     display.innerHTML='';
-    var label=document.createElement('div');
-    label.style.cssText='text-align:center;font-size:14px;font-weight:700;color:var(--text2);margin-bottom:10px;';
-    label.textContent=opLabels[op]||opLabels.igual;
-    display.appendChild(label);
     var row=document.createElement('div');
     row.style.cssText='display:flex;gap:16px;justify-content:center;align-items:center;';
     if(ctype==='image'&&q.compareImgA&&q.compareImgB){
@@ -2762,14 +2757,6 @@ function updateMoneyPreview(){
   if(fromLabel)fromLabel.textContent=currency;
   var wrap=document.getElementById('money-preview-wrap');
   if(wrap)wrap.innerHTML=drawMoneyNote(parseInt(value),currency);
-}
-
-function updateNumberConfig(){
-  var mode=document.getElementById('number-mode')?document.getElementById('number-mode').value:'compare';
-  ['compare','exact','range','calc'].forEach(function(m){
-    var el=document.getElementById('number-config-'+m);
-    if(el)el.style.display=m===mode?'block':'none';
-  });
 }
 
 /* ── SHAPES/WORDS RENDER IN QUIZ ── */
