@@ -631,25 +631,25 @@
           "text": "Que forma é esta ? Selecione a alternativa correta.",
           "alts": [
             {
-              "text": "triangulo",
+              "text": "Quadrado",
+              "correct": false
+            },
+            {
+              "text": "Triângulo",
+              "correct": false
+            },
+            {
+              "text": "Círculo",
               "correct": true
             },
             {
-              "text": "círculo",
-              "correct": false
-            },
-            {
-              "text": "quadrado",
-              "correct": false
-            },
-            {
-              "text": "losango",
+              "text": "Losango",
               "correct": false
             }
           ],
           "cfg": {
             "attempts": 3,
-            "result": "score",
+            "result": "review",
             "voiceRead": false,
             "voiceAnswer": false
           },
