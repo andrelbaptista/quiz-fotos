@@ -2039,6 +2039,7 @@ function setAttemptsBadgeAlert(rem){
     showEmoji('⚠️');
   } else {
     playError();
+    showEmoji('❌');
   }
 }
 
@@ -3411,10 +3412,9 @@ function renderQuizQ(){
   } else if(hasPhoto){
     if(imgWrap)imgWrap.style.display='';
     img.src=q.photo;img.style.display='block';
-    // Title overlay on image
+    // Title already shown in quiz-title-box below - hide overlay
     var titleBar=document.getElementById('quiz-img-title-bar');
-    if(titleBar&&q.text){titleBar.textContent=q.text;titleBar.style.display='block';}
-    else if(titleBar){titleBar.style.display='none';}
+    if(titleBar)titleBar.style.display='none';
     // Reset quiz-alts display after setting photo
     var _td=document.getElementById('quiz-type-display');
         if(_td)_td.innerHTML='';
