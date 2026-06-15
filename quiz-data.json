@@ -538,19 +538,19 @@
           "text": "Qual é o período do dia demostrado no relógio abaixo ?  O relógio é de 24 horas",
           "alts": [
             {
-              "text": "Tarde",
+              "text": "tarde",
+              "correct": false
+            },
+            {
+              "text": "noite",
+              "correct": false
+            },
+            {
+              "text": "manhã",
               "correct": true
             },
             {
-              "text": "Noite",
-              "correct": false
-            },
-            {
-              "text": "Manhã",
-              "correct": false
-            },
-            {
-              "text": "Madrugada",
+              "text": "madrugada",
               "correct": false
             }
           ],
