@@ -663,25 +663,25 @@
           "text": "Que horas são ? Ainda estamos na manhã",
           "alts": [
             {
-              "text": "Doze horas",
+              "text": "12 horas",
+              "correct": false
+            },
+            {
+              "text": "6 horas",
+              "correct": false
+            },
+            {
+              "text": "8 horas",
               "correct": true
             },
             {
-              "text": "Sete horas",
-              "correct": false
-            },
-            {
-              "text": "Quatro horas",
-              "correct": false
-            },
-            {
-              "text": "Oito horas",
+              "text": "5 horas",
               "correct": false
             }
           ],
           "cfg": {
             "attempts": 6,
-            "result": "score",
+            "result": "review",
             "voiceRead": false,
             "voiceAnswer": false
           },
