@@ -2977,6 +2977,27 @@ function handleVoiceAnswer(spokenText, q){
   var spoken=spokenText.toLowerCase().trim();
   var qtype=q.qtype||'photo';
 
+  // Words: compare spoken text to the displayed word/phrase (q.wordsText)
+  if(qtype==='words'){
+    function normWord(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[.,!?;:]/g,'');}
+    var target=normWord(q.wordsText||'');
+    var spokenN=normWord(spoken);
+    if(!target){toast('Não entendi: "'+spokenText+'". Tente novamente.');return;}
+    var threshold=Math.max(2,Math.ceil(target.length*0.25));
+    var isMatch=spokenN===target||spokenN.includes(target)||target.includes(spokenN)||levenshtein(spokenN,target)<=threshold;
+    if(!q.alts||!q.alts.length){
+      handleAnswer(isMatch);
+      return;
+    }
+    var ci3=q.alts.findIndex(function(a){return a.correct;});
+    if(isMatch){selectAlt(ci3);}
+    else{
+      var wrongIdx=q.alts.findIndex(function(a){return !a.correct;});
+      selectAlt(wrongIdx>=0?wrongIdx:(ci3===0?1:0));
+    }
+    return;
+  }
+
   // Number comparison: match spoken number to n1 or n2
   if(qtype==='number'){
     var n1=q.num1||1, n2=q.num2||3;
@@ -3665,7 +3686,7 @@ function renderNumberQuestion(q){
   // Answer buttons as list (A/B) — same style as other question types
   [n1,n2].forEach(function(n,i){
     var cls='alt-btn';
-    if(locked){if(i===correctIdx)cls+=' correct';else cls+=' wrong';}
+    if(locked){if(i===correctIdx)cls+=' correct';else if(i===answers[currentQIdx].chosen&&i!==correctIdx)cls+=' wrong';}
     var btn=document.createElement('button');
     btn.className=cls;
     if(locked)btn.disabled=true;
