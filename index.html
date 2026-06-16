@@ -1937,7 +1937,6 @@ function renderPuzzleQuestion(q){
         cell.addEventListener('dragover',function(e){e.preventDefault();this.style.background='rgba(0,113,227,0.35)';});
         cell.addEventListener('dragleave',function(){this.style.background='rgba(0,113,227,0.15)';});
         cell.addEventListener('drop',onPieceDrop);
-        cell.addEventListener('touchend',onPieceTouchDrop,{passive:false});
       } else {
         var c=document.createElement('canvas');
         var col=i%cols,row=Math.floor(i/cols);
@@ -2025,8 +2024,9 @@ function renderPuzzleQuestion(q){
       });
       pc.addEventListener('dragstart',function(e){dragPiece=this;this.style.opacity='0.5';});
       pc.addEventListener('dragend',function(){this.style.opacity='1';});
-      pc.addEventListener('touchstart',onPieceTouchStart,{passive:true});
+      pc.addEventListener('touchstart',onPieceTouchStart,{passive:false});
       pc.addEventListener('touchmove',onPieceTouchMove,{passive:false});
+      pc.addEventListener('touchend',onPieceTouchDrop,{passive:false});
       tray.appendChild(pc);
     });
     ae.appendChild(tray);
@@ -2112,29 +2112,72 @@ function onPieceDrop(e){
 }
 
 var _touchPiece=null,_touchClone=null;
-function onPieceTouchStart(e){_touchPiece=this;}
+function onPieceTouchStart(e){
+  _touchPiece=this;
+  // highlight piece on touch start
+  this.style.boxShadow='0 0 0 3px var(--blue),0 4px 16px rgba(0,113,227,0.4)';
+}
 function onPieceTouchMove(e){
   e.preventDefault();
   if(!_touchClone&&_touchPiece){
     _touchClone=_touchPiece.cloneNode(true);
-    _touchClone.style.cssText='position:fixed;opacity:0.8;pointer-events:none;z-index:999;width:'+_touchPiece.offsetWidth+'px;height:'+_touchPiece.offsetHeight+'px;';
+    _touchClone.style.cssText='position:fixed;opacity:0.85;pointer-events:none;z-index:9999;'+
+      'width:'+_touchPiece.offsetWidth+'px;height:'+_touchPiece.offsetHeight+'px;'+
+      'border-radius:6px;border:2px solid var(--blue);box-shadow:0 4px 20px rgba(0,113,227,0.5);'+
+      'transition:none;transform:scale(1.08);';
     document.body.appendChild(_touchClone);
+    _touchPiece.style.opacity='0.35';
   }
   if(_touchClone){
     var t=e.touches[0];
     _touchClone.style.left=(t.clientX-_touchPiece.offsetWidth/2)+'px';
     _touchClone.style.top=(t.clientY-_touchPiece.offsetHeight/2)+'px';
+    // highlight hole under finger
+    _touchClone.style.display='none';
+    var elUnder=document.elementFromPoint(t.clientX,t.clientY);
+    _touchClone.style.display='';
+    document.querySelectorAll('.puzzle-hole').forEach(function(h){
+      h.style.background='rgba(0,113,227,0.15)';
+      h.style.border='2px dashed var(--blue)';
+    });
+    var hole=elUnder&&(elUnder.classList.contains('puzzle-hole')?elUnder:elUnder.closest('.puzzle-hole'));
+    if(hole){
+      hole.style.background='rgba(0,113,227,0.35)';
+      hole.style.border='2px solid var(--blue)';
+    }
   }
 }
 function onPieceTouchDrop(e){
   e.preventDefault();
+  // Remove clone
   if(_touchClone){document.body.removeChild(_touchClone);_touchClone=null;}
+  // Restore piece opacity
+  if(_touchPiece)_touchPiece.style.opacity='1';
+  // Restore all hole highlights
+  document.querySelectorAll('.puzzle-hole').forEach(function(h){
+    h.style.background='rgba(0,113,227,0.15)';
+    h.style.border='2px dashed var(--blue)';
+  });
   if(!_touchPiece)return;
-  var holeIdx=parseInt(this.dataset.idx);
-  var pieceIdx=parseInt(_touchPiece.dataset.pieceIdx);
-  if(holeIdx===pieceIdx){placePiece(this,_touchPiece,true);}
-  else{shake(_touchPiece);puzzleWrongAttempt();}
+  // On iOS, touchend fires on the PIECE, not the hole.
+  // Use elementFromPoint to find the hole under the finger.
+  var touch=e.changedTouches[0];
+  // Temporarily hide piece so elementFromPoint finds what's underneath
+  _touchPiece.style.visibility='hidden';
+  var elUnder=document.elementFromPoint(touch.clientX,touch.clientY);
+  _touchPiece.style.visibility='';
+  // Walk up DOM to find .puzzle-hole
+  var hole=elUnder&&(elUnder.classList.contains('puzzle-hole')?elUnder:elUnder.closest('.puzzle-hole'));
+  var piece=_touchPiece;
   _touchPiece=null;
+  if(!hole){
+    // Dropped outside any hole — nothing happens
+    return;
+  }
+  var holeIdx=parseInt(hole.dataset.idx);
+  var pieceIdx=parseInt(piece.dataset.pieceIdx);
+  if(holeIdx===pieceIdx){placePiece(hole,piece,true);}
+  else{shake(piece);puzzleWrongAttempt();}
 }
 
 function placePiece(hole,piece,correct){
