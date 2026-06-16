@@ -2004,8 +2004,7 @@ function renderPuzzleQuestion(q){
       rotLabel.style.cssText='position:absolute;bottom:2px;right:2px;font-size:10px;background:rgba(0,0,0,0.6);color:#fff;padding:1px 4px;border-radius:3px;pointer-events:none;';
       rotLabel.textContent='2x↻';
       pc.appendChild(rotLabel);
-      // Double tap/click to rotate 90° — redraws pixels, no CSS transform
-      // Works on desktop (click) and mobile (touchend when no drag occurred)
+      // Rotation via double-tap (mobile) or double-click (desktop)
       var tapCount=0,tapTimer=null;
       function doRotate(el){
         var cur=parseInt(el.dataset.rotation||'0');
@@ -2015,39 +2014,58 @@ function renderPuzzleQuestion(q){
         var colN=parseInt(el.dataset.pieceIdx)%cols;
         var rowN=Math.floor(parseInt(el.dataset.pieceIdx)/cols);
         drawPieceRotated(cv,img,colN,rowN,cols,rows,next);
-        toast('Rotacionado '+next+'°');
+        toast('Girou para '+next+'° — toque 2x para continuar girando');
       }
+      // Desktop: double-click to rotate
       pc.addEventListener('click',function(){
-        // Desktop double-click to rotate
         tapCount++;
         if(tapTimer)clearTimeout(tapTimer);
+        var self=this;
         tapTimer=setTimeout(function(){
-          if(tapCount>=2)doRotate(this);
+          if(tapCount>=2)doRotate(self);
           tapCount=0;
-        }.bind(this),300);
+        },350);
       });
       pc.addEventListener('dragstart',function(e){dragPiece=this;this.style.opacity='0.5';});
       pc.addEventListener('dragend',function(){this.style.opacity='1';});
       pc.addEventListener('touchstart',onPieceTouchStart,{passive:false});
       pc.addEventListener('touchmove',onPieceTouchMove,{passive:false});
       pc.addEventListener('touchend',function(e){
-        // If finger barely moved → it's a tap, handle double-tap rotation
-        // If finger moved significantly → it's a drag, handle drop
-        if(_touchMoved){
-          onPieceTouchDrop.call(this,e);
+        e.preventDefault();
+        var wasDrag=_touchMoved;
+        var piece=_touchPiece;
+        // Always clean up state
+        if(piece){piece.style.opacity='1';piece.style.boxShadow='';}
+        _touchPiece=null;
+        _touchMoved=false;
+        _touchStartPos=null;
+        if(_touchClone){document.body.removeChild(_touchClone);_touchClone=null;}
+        document.querySelectorAll('.puzzle-hole').forEach(function(h){
+          h.style.background='rgba(0,113,227,0.15)';
+          h.style.border='2px dashed var(--blue)';
+        });
+        if(wasDrag){
+          // DRAG → find hole under finger
+          if(!piece)return;
+          var touch=e.changedTouches[0];
+          piece.style.visibility='hidden';
+          var elUnder=document.elementFromPoint(touch.clientX,touch.clientY);
+          piece.style.visibility='';
+          var hole=elUnder&&(elUnder.classList.contains('puzzle-hole')?elUnder:elUnder.closest('.puzzle-hole'));
+          if(!hole)return;
+          var holeIdx=parseInt(hole.dataset.idx);
+          var pieceIdx=parseInt(piece.dataset.pieceIdx);
+          if(holeIdx===pieceIdx){placePiece(hole,piece,true);}
+          else{shake(piece);puzzleWrongAttempt();}
         } else {
-          // Tap detected — count for double-tap
-          e.preventDefault(); // prevent ghost click on mobile
-          if(_touchPiece)_touchPiece.style.opacity='1';
-          _touchPiece=null;
-          if(_touchClone){document.body.removeChild(_touchClone);_touchClone=null;}
+          // TAP → double-tap to rotate
           tapCount++;
           if(tapTimer)clearTimeout(tapTimer);
           var self=this;
           tapTimer=setTimeout(function(){
             if(tapCount>=2)doRotate(self);
             tapCount=0;
-          },300);
+          },350);
         }
       },{passive:false});
       tray.appendChild(pc);
