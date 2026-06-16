@@ -2005,20 +2005,24 @@ function renderPuzzleQuestion(q){
       rotLabel.textContent='2x↻';
       pc.appendChild(rotLabel);
       // Double tap/click to rotate 90° — redraws pixels, no CSS transform
+      // Works on desktop (click) and mobile (touchend when no drag occurred)
       var tapCount=0,tapTimer=null;
+      function doRotate(el){
+        var cur=parseInt(el.dataset.rotation||'0');
+        var next=(cur+90)%360;
+        el.dataset.rotation=String(next);
+        var cv=el.querySelector('canvas');
+        var colN=parseInt(el.dataset.pieceIdx)%cols;
+        var rowN=Math.floor(parseInt(el.dataset.pieceIdx)/cols);
+        drawPieceRotated(cv,img,colN,rowN,cols,rows,next);
+        toast('Rotacionado '+next+'°');
+      }
       pc.addEventListener('click',function(){
+        // Desktop double-click to rotate
         tapCount++;
         if(tapTimer)clearTimeout(tapTimer);
         tapTimer=setTimeout(function(){
-          if(tapCount>=2){
-            var cur=parseInt(this.dataset.rotation||'0');
-            var next=(cur+90)%360;
-            this.dataset.rotation=String(next);
-            var cv=this.querySelector('canvas');
-            var colN=parseInt(this.dataset.pieceIdx)%cols;
-            var rowN=Math.floor(parseInt(this.dataset.pieceIdx)/cols);
-            drawPieceRotated(cv,img,colN,rowN,cols,rows,next);
-          }
+          if(tapCount>=2)doRotate(this);
           tapCount=0;
         }.bind(this),300);
       });
@@ -2026,7 +2030,26 @@ function renderPuzzleQuestion(q){
       pc.addEventListener('dragend',function(){this.style.opacity='1';});
       pc.addEventListener('touchstart',onPieceTouchStart,{passive:false});
       pc.addEventListener('touchmove',onPieceTouchMove,{passive:false});
-      pc.addEventListener('touchend',onPieceTouchDrop,{passive:false});
+      pc.addEventListener('touchend',function(e){
+        // If finger barely moved → it's a tap, handle double-tap rotation
+        // If finger moved significantly → it's a drag, handle drop
+        if(_touchMoved){
+          onPieceTouchDrop.call(this,e);
+        } else {
+          // Tap detected — count for double-tap
+          e.preventDefault(); // prevent ghost click on mobile
+          if(_touchPiece)_touchPiece.style.opacity='1';
+          _touchPiece=null;
+          if(_touchClone){document.body.removeChild(_touchClone);_touchClone=null;}
+          tapCount++;
+          if(tapTimer)clearTimeout(tapTimer);
+          var self=this;
+          tapTimer=setTimeout(function(){
+            if(tapCount>=2)doRotate(self);
+            tapCount=0;
+          },300);
+        }
+      },{passive:false});
       tray.appendChild(pc);
     });
     ae.appendChild(tray);
@@ -2111,14 +2134,25 @@ function onPieceDrop(e){
   else{this.style.background='rgba(0,113,227,0.15)';shake(dragPiece);puzzleWrongAttempt();}
 }
 
-var _touchPiece=null,_touchClone=null;
+var _touchPiece=null,_touchClone=null,_touchMoved=false,_touchStartPos=null;
 function onPieceTouchStart(e){
   _touchPiece=this;
+  _touchMoved=false;
+  var t=e.touches[0];
+  _touchStartPos={x:t.clientX,y:t.clientY};
   // highlight piece on touch start
   this.style.boxShadow='0 0 0 3px var(--blue),0 4px 16px rgba(0,113,227,0.4)';
 }
 function onPieceTouchMove(e){
   e.preventDefault();
+  if(!_touchPiece)return;
+  var t=e.touches[0];
+  // Mark as moved if finger travelled more than 8px
+  if(!_touchMoved&&_touchStartPos){
+    var dx=t.clientX-_touchStartPos.x, dy=t.clientY-_touchStartPos.y;
+    if(Math.sqrt(dx*dx+dy*dy)>8)_touchMoved=true;
+  }
+  if(!_touchMoved)return; // don't create clone until we're sure it's a drag
   if(!_touchClone&&_touchPiece){
     _touchClone=_touchPiece.cloneNode(true);
     _touchClone.style.cssText='position:fixed;opacity:0.85;pointer-events:none;z-index:9999;'+
@@ -2129,7 +2163,6 @@ function onPieceTouchMove(e){
     _touchPiece.style.opacity='0.35';
   }
   if(_touchClone){
-    var t=e.touches[0];
     _touchClone.style.left=(t.clientX-_touchPiece.offsetWidth/2)+'px';
     _touchClone.style.top=(t.clientY-_touchPiece.offsetHeight/2)+'px';
     // highlight hole under finger
