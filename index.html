@@ -2561,16 +2561,16 @@ function speakQuizHelp(){
   if(!q)return;
   var qtype=q.qtype||'photo';
   var typeInstructions={
-    photo:'Observe a foto e escolha a resposta correta.',
-    clock:'Veja o relógio e escolha a hora correta.',
-    period:'Observe o horário e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
-    money:'Identifique o valor da nota e escolha a resposta.',
-    number:'Analise os números e escolha a resposta correta.',
-    puzzle:'Arraste as peças para completar a imagem. Toque duas vezes para girar a peça.',
-    words:'Leia a palavra e escolha a resposta.',
-    shapes:'Observe a forma e diga o nome em voz alta.',
-    doc:'Leia o documento e responda.',
-    compare:'Observe as duas imagens e responda a pergunta.'
+    photo:'Observe a foto e escolha a alternativa correta.',
+    clock:'Veja o relógio com ponteiros e escolha a hora correta.',
+    period:'Veja o horário no relógio digital e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
+    money:'Observe a cédula e escolha o valor correto.',
+    number:'Observe o número ou os números e escolha a resposta correta.',
+    puzzle:'Arraste cada peça para o buraco correspondente. Toque duas vezes na peça para girá-la.',
+    words:'Leia ou ouça a palavra e escolha a alternativa correta.',
+    shapes:'Observe a forma geométrica e escolha o nome correto.',
+    doc:'Leia o documento ou texto e escolha a alternativa correta.',
+    compare:'Compare as duas imagens ou formas e escolha a resposta correta.'
   };
   var instruction=typeInstructions[qtype]||'Escolha a alternativa correta.';
   // Read question text first, then instruction
@@ -2582,15 +2582,15 @@ function showQuizHelp(){
   var qtype=q?q.qtype||'photo':'photo';
   var typeHelp={
     photo:'📷 Observe a foto e escolha a alternativa correta.',
-    clock:'🕐 Veja o relógio e escolha a hora correta.',
-    period:'🌅 Observe o horário e escolha o período do dia.',
-    money:'💰 Identifique o valor da nota e escolha a resposta.',
-    number:'🔢 Analise o número e responda.',
-    puzzle:'🧩 Arraste as peças para completar a imagem. Toque 2x para girar.',
-    words:'💬 Leia a palavra e escolha a resposta.',
-    shapes:'🔷 Observe a forma e responda.',
-    doc:'📄 Leia o documento e responda.',
-    compare:'⚖️ Compare as duas imagens ou formas e responda.'
+    clock:'🕐 Veja o relógio com ponteiros e escolha a hora correta nas alternativas.',
+    period:'🌅 Veja o horário no relógio digital e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
+    money:'💰 Observe a cédula exibida e escolha o valor correto nas alternativas.',
+    number:'🔢 Observe o número ou os números e escolha a resposta correta.',
+    puzzle:'🧩 Arraste cada peça para o buraco correspondente na imagem. Toque 2x na peça para girá-la 90°.',
+    words:'💬 Leia ou ouça a palavra destacada e escolha a alternativa correta.',
+    shapes:'🔷 Observe a forma geométrica e escolha o nome correto nas alternativas.',
+    doc:'📄 Leia o documento ou texto exibido e escolha a alternativa correta.',
+    compare:'⚖️ Compare as duas imagens ou formas exibidas e responda a pergunta.'
   };
   var cfg=quizCfg||{};
   var lines=['<b>Como jogar esta questão:</b>',
