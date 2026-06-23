@@ -357,34 +357,40 @@ svg.hist-chart{display:block;max-width:100%;}
 
 /* ── SPLASH SCREEN ── */
 #splash-screen{
-  position:fixed;inset:0;background:#000;z-index:9999;
+  position:fixed;inset:0;background:#000;z-index:2147483647;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
+  isolation:isolate;
 }
 /* Painel esquerdo: fundo BRANCO, texto PRETO — igual ao lado DEEP do logo */
 #splash-left{
-  position:absolute;top:0;bottom:0;right:50%;width:50%;
+  position:absolute;top:0;bottom:0;right:50%;width:51%;/* +1px para cobrir gap de subpixel */
   background:#fff;
   display:flex;align-items:center;justify-content:center;
   transform:translateX(-100%);
   transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
+  z-index:2147483647;
 }
-/* Painel direito: fundo PRETO, texto BRANCO — igual ao lado TECH do logo */
+/* Painel direito: fundo PRETO com borda para diferenciar do fundo — igual ao lado TECH do logo */
 #splash-right{
-  position:absolute;top:0;bottom:0;left:50%;width:50%;
-  background:#000;
+  position:absolute;top:0;bottom:0;left:50%;width:51%;/* +1px para cobrir gap de subpixel */
+  background:#111;/* levemente diferente do fundo #000 para ser visível */
+  border-left:2px solid #333;
   display:flex;align-items:center;justify-content:center;
   transform:translateX(100%);
   transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
+  z-index:2147483647;
 }
 #splash-deep{
   font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
   font-size:min(13vw,110px);font-weight:900;color:#000;
   letter-spacing:-2px;text-transform:uppercase;user-select:none;
+  pointer-events:none;
 }
 #splash-tech{
   font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
   font-size:min(13vw,110px);font-weight:900;color:#fff;
   letter-spacing:-2px;text-transform:uppercase;user-select:none;
+  pointer-events:none;
 }
 #splash-screen.reveal #splash-left{transform:translateX(0);}
 #splash-screen.reveal #splash-right{transform:translateX(0);}
