@@ -354,74 +354,9 @@ svg.hist-chart{display:block;max-width:100%;}
 .user-check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
 .user-check-item:last-child{border-bottom:none;}
 .user-check-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
-
-/* ── SPLASH SCREEN ── */
-#splash-screen{
-  position:fixed;inset:0;background:#000;z-index:2147483647;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;
-  isolation:isolate;
-}
-/* Painel esquerdo: fundo BRANCO, texto PRETO — igual ao lado DEEP do logo */
-#splash-left{
-  position:absolute;top:0;bottom:0;right:50%;width:51%;/* +1px para cobrir gap de subpixel */
-  background:#fff;
-  display:flex;align-items:center;justify-content:center;
-  transform:translateX(-100%);
-  transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
-  z-index:2147483647;
-}
-/* Painel direito: fundo PRETO com borda para diferenciar do fundo — igual ao lado TECH do logo */
-#splash-right{
-  position:absolute;top:0;bottom:0;left:50%;width:51%;/* +1px para cobrir gap de subpixel */
-  background:#111;/* levemente diferente do fundo #000 para ser visível */
-  border-left:2px solid #333;
-  display:flex;align-items:center;justify-content:center;
-  transform:translateX(100%);
-  transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
-  z-index:2147483647;
-}
-#splash-deep{
-  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
-  font-size:min(13vw,110px);font-weight:900;color:#000;
-  letter-spacing:-2px;text-transform:uppercase;user-select:none;
-  pointer-events:none;
-}
-#splash-tech{
-  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
-  font-size:min(13vw,110px);font-weight:900;color:#fff;
-  letter-spacing:-2px;text-transform:uppercase;user-select:none;
-  pointer-events:none;
-}
-#splash-screen.reveal #splash-left{transform:translateX(0);}
-#splash-screen.reveal #splash-right{transform:translateX(0);}
-#splash-screen.fade-out{opacity:0;transition:opacity 0.45s ease;pointer-events:none;}
-
-/* ── QUIZ CARD ICON (capa) ── */
-.quiz-card-icon img.cover-img{width:100%;height:100%;object-fit:cover;border-radius:var(--radius-xs);}
-.quiz-card-icon.text-cover{
-  background:linear-gradient(135deg,var(--blue),var(--purple));
-  font-weight:800;color:#fff;font-size:13px;text-align:center;padding:4px;
-  word-break:break-word;line-height:1.2;
-}
-
-/* ── ICON PICKER ── */
-.icon-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:8px 0;}
-.icon-btn{font-size:20px;padding:5px;border-radius:var(--radius-xs);border:2px solid transparent;background:var(--surface2);cursor:pointer;text-align:center;transition:border-color 0.1s;}
-.icon-btn.selected{border-color:var(--blue);background:var(--blue-bg);}
-.cover-tabs{display:flex;gap:6px;margin-bottom:10px;}
-.cover-tab{flex:1;padding:7px;border-radius:var(--radius-xs);border:0.5px solid var(--border2);background:var(--surface2);font-size:12px;font-weight:500;cursor:pointer;text-align:center;color:var(--text2);}
-.cover-tab.active{background:var(--blue);border-color:var(--blue);color:#fff;}
-.cover-preview{width:60px;height:60px;border-radius:var(--radius-sm);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;margin:8px auto;overflow:hidden;background:var(--surface2);}
-
 </style>
 </head>
 <body>
-<!-- SPLASH SCREEN -->
-<div id="splash-screen">
-  <div id="splash-left"><span id="splash-deep">DEEP</span></div>
-  <div id="splash-right"><span id="splash-tech">TECH</span></div>
-</div>
-
 <div id="msg-bar">
   <span id="msg-bar-text"></span>
   <button id="msg-bar-close" onclick="closeMsg()">✕</button>
@@ -1118,24 +1053,6 @@ svg.hist-chart{display:block;max-width:100%;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>
-
-/* ── SPLASH SCREEN ── */
-(function(){
-  var splash = document.getElementById('splash-screen');
-  if(!splash) return;
-  // Trigger reveal animation after brief paint
-  setTimeout(function(){
-    splash.classList.add('reveal');
-    // After 3s total (0.75s anim + 2.25s hold), fade out
-    setTimeout(function(){
-      splash.classList.add('fade-out');
-      setTimeout(function(){
-        splash.style.display='none';
-      }, 480);
-    }, 1200);
-  }, 80);
-})();
-
 var LETTERS=['A','B','C','D','E','F','G','H'];
 var toastTimer=null;
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -1214,34 +1131,10 @@ function loginErr(m){var el=document.getElementById('login-err');el.textContent=
 async function doLogin(){
   var u=document.getElementById('login-user').value.trim().toLowerCase();
   var p=document.getElementById('login-pass').value;
-  if(!u||!p){loginErr('Preencha usuario e senha.');return;}
-  var btn=document.getElementById('btn-login-submit');
-  if(btn){btn.disabled=true;btn.textContent='Verificando...';}
-  try{
-    var cfg=getCfg();
-    var repoUser=cfg.user||'andrelbaptista';
-    var repoName=cfg.repo||'quiz-fotos';
-    var repoFile=cfg.file||'quiz-data.json';
-    var rawUrl='https://raw.githubusercontent.com/'+repoUser+'/'+repoName+'/main/'+repoFile+'?t='+Date.now();
-    var r=await fetch(rawUrl,{cache:'no-store'});
-    if(r.ok){
-      var json=await r.json();
-      if(json&&json.users&&Array.isArray(json.users)){
-        var localUsers=getUsers();
-        var merged=localUsers.slice();
-        json.users.forEach(function(gu){
-          var idx=merged.findIndex(function(lu){return lu.username===gu.username;});
-          if(idx===-1)merged.push(gu);
-          else merged[idx]=gu;
-        });
-        saveUsers(merged);
-      }
-    }
-  }catch(e){}
-  if(btn){btn.disabled=false;btn.textContent='Entrar';}
+  if(!u||!p){loginErr('Preencha usuário e senha.');return;}
   var h=await sha256(p);
   var user=getUsers().find(function(x){return x.username===u&&x.hash===h;});
-  if(!user){loginErr('Usuario ou senha incorretos.');return;}
+  if(!user){loginErr('Usuário ou senha incorretos.');return;}
   currentUser={username:user.username,role:user.role||'player'};
   localStorage.setItem('quiz_session',JSON.stringify(currentUser));
   enterApp();
@@ -1539,7 +1432,7 @@ function renderAdminQuizList(){
       (quiz.accessUsers||[]).map(function(u){return'<span class="access-chip">'+esc(u)+'</span>';}).join('')||'<span class="access-chip">Nenhum</span>';
     card.innerHTML=
       '<div class="quiz-card-header">'+
-        getQuizCoverHtml(quiz)+
+        '<div class="quiz-card-icon">📋</div>'+
         '<div class="quiz-card-info">'+
           '<div class="quiz-card-name">'+esc(quiz.name)+'</div>'+
           '<div class="quiz-card-meta">'+qCount+' questão'+(qCount!==1?'s':'')+' · '+accessLabel+'</div>'+
@@ -1593,7 +1486,7 @@ function renderQuizList(){
       '<button class="btn btn-xs btn-danger" onclick="confirmDeleteQuiz(\''+quiz.id+'\')">✕</button>':'';
     card.innerHTML=
       '<div class="quiz-card-header">'+
-        getQuizCoverHtml(quiz)+
+        '<div class="quiz-card-icon">📋</div>'+
         '<div class="quiz-card-info">'+
           '<div class="quiz-card-name">'+esc(quiz.name)+'</div>'+
           '<div class="quiz-card-meta">'+qCount+' questão'+(qCount!==1?'s':'')+' · '+accessLabel+'</div>'+
@@ -1624,12 +1517,10 @@ function showCreateQuizModal(){
   var userChecks=users.map(function(u){
     return'<div class="user-check-item"><input type="checkbox" class="quiz-user-cb" value="'+esc(u.username)+'"><label style="font-size:14px;cursor:pointer;">'+esc(u.username)+'</label></div>';
   }).join('');
-  _editCoverData=null;
   showModal(
     '<h2>Novo quiz</h2>'+
     '<div class="field" style="margin-bottom:12px;"><label>Nome do quiz</label><input type="text" id="new-quiz-name" placeholder="ex: Turma A — História"></div>'+
-    buildCoverModal(null)+
-    '<div class="section-title" style="margin:12px 0 8px;">Quem pode acessar</div>'+
+    '<div class="section-title" style="margin-bottom:8px;">Quem pode acessar</div>'+
     '<div class="user-check-item" style="margin-bottom:8px;"><input type="checkbox" id="quiz-access-all" onchange="toggleAccessAll(this)" checked><label style="font-size:14px;font-weight:600;cursor:pointer;">Todos os usuários</label></div>'+
     '<div id="quiz-user-list" style="display:none;">'+userChecks+'</div>'+
     '<div class="section-title" style="margin-bottom:8px;">🏆 Imagem da chegada</div>'+
@@ -1660,8 +1551,7 @@ function createQuiz(){
     document.querySelectorAll('.quiz-user-cb:checked').forEach(function(cb){accessUsers.push(cb.value);});
   }
   var goalEmoji=document.getElementById('new-quiz-goal-emoji')?document.getElementById('new-quiz-goal-emoji').value.trim():'🏆';
-  var cover=getCoverFromModal();
-  var quiz={id:Date.now()+'',name:name,createdBy:currentUser.username,accessAll:accessAll,accessUsers:accessUsers,questions:[],goalEmoji:goalEmoji||'🏆',goalImg:_goalImgData||null,cover:cover};
+  var quiz={id:Date.now()+'',name:name,createdBy:currentUser.username,accessAll:accessAll,accessUsers:accessUsers,questions:[],goalEmoji:goalEmoji||'🏆',goalImg:_goalImgData||null};
   _goalImgData=null;
   quizzes.push(quiz);isDirty=true;saveLS();closeModal();renderQuizList();
   toast('Quiz criado! Salvando no GitHub...');
@@ -1670,124 +1560,8 @@ function createQuiz(){
     openQuizDetail(quiz.id);
   },300);
 }
-/* ── QUIZ COVER (capa) helpers ── */
-var COVER_ICONS=['❤️','⭐','☀️','⚡','🏆','👍','🌟','🎯','🎉','🌈','🔥','💪',
-  '🦋','🌸','🍎','🐬','🦁','🐧','🎵','📚','✏️','🏅','🎀','💎',
-  '🚀','🌙','🍦','🌺','🦄','🏠','🎨','🧩','🔮','💡','🎁','🌍'];
-var _editCoverData=null;
-
-function showCoverTab(tab){
-  ['img','text','icon'].forEach(function(t){
-    var btn=document.getElementById('ctab-'+t);
-    var panel=document.getElementById('cpanel-'+t);
-    if(btn)btn.classList.toggle('active',t===tab);
-    if(panel)panel.style.display=t===tab?'block':'none';
-  });
-  updateCoverPreview();
-}
-
-function updateCoverPreview(){
-  var prev=document.getElementById('cover-preview-box');
-  if(!prev)return;
-  var activeBtn=document.querySelector('#ctab-img.active,#ctab-text.active,#ctab-icon.active');
-  var activeTab=activeBtn?activeBtn.id.replace('ctab-',''):'icon';
-  if(activeTab==='img'&&_editCoverData){
-    prev.innerHTML='<img src="'+_editCoverData+'" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">';
-    prev.style.background='';
-  } else if(activeTab==='text'){
-    var txt=document.getElementById('cover-text-val');
-    var col=document.getElementById('cover-text-color');
-    var sz=document.getElementById('cover-text-size');
-    var v=txt?esc(txt.value.trim()||'A'):'A';
-    var c=col?col.value:'#0071e3';
-    var s=sz?sz.value:'18';
-    prev.innerHTML='<span style="font-size:'+s+'px;font-weight:800;color:'+c+';text-align:center;line-height:1.1;word-break:break-word;padding:4px;">'+v+'</span>';
-    prev.style.background='linear-gradient(135deg,'+c+'22,'+c+'55)';
-  } else {
-    var sel=document.querySelector('.icon-btn.selected');
-    prev.innerHTML='<span style="font-size:28px;">'+(sel?sel.dataset.ico:'⭐')+'</span>';
-    prev.style.background='';
-  }
-}
-
-function selectCoverIcon(btn){
-  document.querySelectorAll('.icon-btn').forEach(function(b){b.classList.remove('selected');});
-  btn.classList.add('selected');
-  updateCoverPreview();
-}
-
-function loadCoverImg(input){
-  if(!input.files||!input.files[0])return;
-  var r=new FileReader();
-  r.onload=function(e){_editCoverData=e.target.result;updateCoverPreview();};
-  r.readAsDataURL(input.files[0]);
-}
-
-function getCoverFromModal(){
-  var activeBtn=document.querySelector('#ctab-img.active,#ctab-text.active,#ctab-icon.active');
-  var activeTab=activeBtn?activeBtn.id.replace('ctab-',''):'icon';
-  if(activeTab==='img'&&_editCoverData) return{type:'img',data:_editCoverData};
-  if(activeTab==='text'){
-    var txt=document.getElementById('cover-text-val');
-    var col=document.getElementById('cover-text-color');
-    var sz=document.getElementById('cover-text-size');
-    return{type:'text',text:(txt?txt.value.trim():''),color:(col?col.value:'#0071e3'),size:(sz?sz.value:'18')};
-  }
-  var sel=document.querySelector('.icon-btn.selected');
-  return{type:'icon',icon:sel?sel.dataset.ico:'⭐'};
-}
-
-function buildCoverModal(quiz){
-  var cur=quiz?quiz.cover:null;
-  var activeTab=cur?cur.type:'icon';
-  if(activeTab==='img')activeTab='img';
-  else if(activeTab==='text')activeTab='text';
-  else activeTab='icon';
-  var iconGrid=COVER_ICONS.map(function(ico){
-    var isSel=cur&&cur.type==='icon'&&cur.icon===ico;
-    return'<button class="icon-btn'+(isSel?' selected':'')+'" data-ico="'+ico+'" onclick="selectCoverIcon(this)" type="button">'+ico+'</button>';
-  }).join('');
-  var prevHtml='<span style="font-size:28px;">'+(cur&&cur.type==='icon'?cur.icon:'⭐')+'</span>';
-  var prevBg='';
-  if(cur&&cur.type==='img'&&cur.data){prevHtml='<img src="'+cur.data+'" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">';prevBg='';}
-  else if(cur&&cur.type==='text'){prevHtml='<span style="font-size:'+(cur.size||18)+'px;font-weight:800;color:'+(cur.color||'#0071e3')+';text-align:center;word-break:break-word;">'+esc(cur.text||'')+'</span>';prevBg='background:linear-gradient(135deg,'+(cur.color||'#0071e3')+'22,'+(cur.color||'#0071e3')+'55);';}
-  return '<div class="section-title" style="margin-bottom:8px;">🎨 Capa do quiz</div>'+
-    '<div class="cover-tabs">'+
-      '<button id="ctab-icon" class="cover-tab'+(activeTab==='icon'?' active':'')+'" onclick="showCoverTab(\'icon\')" type="button">😊 Ícone</button>'+
-      '<button id="ctab-text" class="cover-tab'+(activeTab==='text'?' active':'')+'" onclick="showCoverTab(\'text\')" type="button">✏️ Texto</button>'+
-      '<button id="ctab-img" class="cover-tab'+(activeTab==='img'?' active':'')+'" onclick="showCoverTab(\'img\')" type="button">🖼 Imagem</button>'+
-    '</div>'+
-    '<div id="cpanel-icon" style="'+(activeTab!=='icon'?'display:none':'')+'"><div class="icon-grid">'+iconGrid+'</div></div>'+
-    '<div id="cpanel-text" style="'+(activeTab!=='text'?'display:none':'')+'">'+
-      '<div class="field"><label>Texto da capa</label><input type="text" id="cover-text-val" value="'+esc(cur&&cur.type==='text'?cur.text:'')+'" placeholder="Ex: Turma A" oninput="updateCoverPreview()"></div>'+
-      '<div class="row" style="gap:10px;">'+
-        '<div class="field" style="flex:1;"><label>Cor</label><select id="cover-text-color" onchange="updateCoverPreview()">'+
-          ['#0071e3:Azul','#1d9e75:Verde','#d93025:Vermelho','#6d28d9:Roxo','#FF6B35:Laranja','#1d1d1f:Preto'].map(function(cv){var parts=cv.split(':');var c=parts[0];var n=parts[1];return'<option value="'+c+'"'+(cur&&cur.color===c?' selected':'')+'>'+n+'</option>';}).join('')+
-        '</select></div>'+
-        '<div class="field" style="flex:1;"><label>Tamanho</label><select id="cover-text-size" onchange="updateCoverPreview()">'+
-          [['14','Pequeno'],['18','Médio'],['24','Grande']].map(function(sv){return'<option value="'+sv[0]+'"'+((cur&&cur.size===sv[0])||(!cur&&sv[0]==='18')?' selected':'')+'>'+sv[1]+'</option>';}).join('')+
-        '</select></div>'+
-      '</div>'+
-    '</div>'+
-    '<div id="cpanel-img" style="'+(activeTab!=='img'?'display:none':'')+'">'+
-      '<label class="btn btn-sm btn-warning" style="cursor:pointer;width:100%;justify-content:center;margin-bottom:8px;">'+
-        '📷 Escolher imagem<input type="file" accept="image/*" onchange="loadCoverImg(this)" style="display:none;">'+
-      '</label>'+
-    '</div>'+
-    '<div class="cover-preview" id="cover-preview-box" style="'+prevBg+'">'+prevHtml+'</div>';
-}
-
-function getQuizCoverHtml(quiz){
-  var cover=quiz?quiz.cover:null;
-  if(!cover)return'<div class="quiz-card-icon">📋</div>';
-  if(cover.type==='img'&&cover.data)return'<div class="quiz-card-icon" style="overflow:hidden;padding:0;"><img class="cover-img" src="'+cover.data+'" alt=""></div>';
-  if(cover.type==='text')return'<div class="quiz-card-icon text-cover" style="background:linear-gradient(135deg,'+(cover.color||'#0071e3')+'33,'+(cover.color||'#0071e3')+'66);color:'+(cover.color||'#0071e3')+';font-size:'+(cover.size||18)+'px;">'+esc(cover.text||'')+'</div>';
-  return'<div class="quiz-card-icon">'+(cover.icon||'📋')+'</div>';
-}
-
 function editQuizMeta(id){
   var quiz=getQuiz(id);if(!quiz)return;
-  _editCoverData=quiz.cover&&quiz.cover.type==='img'?quiz.cover.data:null;
   var users=getUsers().filter(function(u){return u.role==='player';});
   var userChecks=users.map(function(u){
     var checked=!quiz.accessAll&&quiz.accessUsers&&quiz.accessUsers.indexOf(u.username)!==-1;
@@ -1796,9 +1570,8 @@ function editQuizMeta(id){
   }).join('');
   showModal(
     '<h2>Editar quiz</h2>'+
-    '<div class="field" style="margin-bottom:12px;"><label>Nome do quiz</label><input type="text" id="edit-quiz-name" value="'+esc(quiz.name)+'"></div>'+
-    buildCoverModal(quiz)+
-    '<div class="section-title" style="margin:12px 0 8px;">Quem pode acessar</div>'+
+    '<div class="field" style="margin-bottom:12px;"><label>Nome</label><input type="text" id="edit-quiz-name" value="'+esc(quiz.name)+'"></div>'+
+    '<div class="section-title" style="margin-bottom:8px;">Quem pode acessar</div>'+
     '<div class="user-check-item" style="margin-bottom:8px;"><input type="checkbox" id="quiz-access-all" onchange="toggleAccessAll(this)"'+(quiz.accessAll?' checked':'')+'>'+
       '<label style="font-size:14px;font-weight:600;cursor:pointer;">Todos os usuários</label></div>'+
     '<div id="quiz-user-list" style="'+(quiz.accessAll?'display:none':'')+'">'+userChecks+'</div>'+
@@ -1810,12 +1583,10 @@ function saveQuizMeta(id){
   var name=document.getElementById('edit-quiz-name').value.trim();
   if(!name){showError('Digite um nome para o quiz.');return;}
   quiz.name=name;
-  quiz.cover=getCoverFromModal();
   quiz.accessAll=document.getElementById('quiz-access-all').checked;
   quiz.accessUsers=[];
   if(!quiz.accessAll){document.querySelectorAll('.quiz-user-cb:checked').forEach(function(cb){quiz.accessUsers.push(cb.value);});}
-  isDirty=true;saveLS();closeModal();renderQuizList();renderAdminQuizList();
-  toast('✅ Quiz atualizado!');setTimeout(function(){syncToGitHub();},500);
+  isDirty=true;saveLS();closeModal();renderQuizList();toast('Sincronizando...');setTimeout(function(){syncToGitHub();},500);
 }
 function confirmDeleteQuiz(id){
   var quiz=getQuiz(id);if(!quiz)return;
@@ -2566,17 +2337,17 @@ function speakQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
   if(!q)return;
   var qtype=q.qtype||'photo';
+  // Se for relógio no modo período, tratar como 'period' na instrução de voz
+  if(qtype==='clock'&&q.clockMode==='period')qtype='period';
   var typeInstructions={
-    photo:'Observe a foto e escolha a alternativa correta.',
-    clock:'Veja o relógio com ponteiros e escolha a hora correta.',
     period:'Veja o horário no relógio digital e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
-    money:'Observe a cédula e escolha o valor correto.',
-    number:'Observe o número ou os números e escolha a resposta correta.',
-    puzzle:'Arraste cada peça para o buraco correspondente. Toque duas vezes na peça para girá-la.',
-    words:'Leia ou ouça a palavra e escolha a alternativa correta.',
-    shapes:'Observe a forma geométrica e escolha o nome correto.',
-    doc:'Leia o documento ou texto e escolha a alternativa correta.',
-    compare:'Compare as duas imagens ou formas e escolha a resposta correta.'
+    money:'Identifique o valor da nota e escolha a resposta.',
+    number:'Analise os números e escolha a resposta correta.',
+    puzzle:'Arraste as peças para completar a imagem. Toque duas vezes para girar a peça.',
+    words:'Leia a palavra e escolha a resposta.',
+    shapes:'Observe a forma e diga o nome em voz alta.',
+    doc:'Leia o documento e responda.',
+    compare:'Observe as duas imagens e responda a pergunta.'
   };
   var instruction=typeInstructions[qtype]||'Escolha a alternativa correta.';
   // Read question text first, then instruction
@@ -2586,17 +2357,19 @@ function speakQuizHelp(){
 function showQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
   var qtype=q?q.qtype||'photo':'photo';
+  // Se for relógio no modo período, tratar como 'period' no texto de ajuda
+  if(qtype==='clock'&&q&&q.clockMode==='period')qtype='period';
   var typeHelp={
     photo:'📷 Observe a foto e escolha a alternativa correta.',
     clock:'🕐 Veja o relógio com ponteiros e escolha a hora correta nas alternativas.',
     period:'🌅 Veja o horário no relógio digital e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
-    money:'💰 Observe a cédula exibida e escolha o valor correto nas alternativas.',
-    number:'🔢 Observe o número ou os números e escolha a resposta correta.',
-    puzzle:'🧩 Arraste cada peça para o buraco correspondente na imagem. Toque 2x na peça para girá-la 90°.',
-    words:'💬 Leia ou ouça a palavra destacada e escolha a alternativa correta.',
-    shapes:'🔷 Observe a forma geométrica e escolha o nome correto nas alternativas.',
-    doc:'📄 Leia o documento ou texto exibido e escolha a alternativa correta.',
-    compare:'⚖️ Compare as duas imagens ou formas exibidas e responda a pergunta.'
+    money:'💰 Identifique o valor da nota e escolha a resposta.',
+    number:'🔢 Analise o número e responda.',
+    puzzle:'🧩 Arraste as peças para completar a imagem. Toque 2x para girar.',
+    words:'💬 Leia a palavra e escolha a resposta.',
+    shapes:'🔷 Observe a forma e responda.',
+    doc:'📄 Leia o documento e responda.',
+    compare:'⚖️ Compare as duas imagens ou formas e responda.'
   };
   var cfg=quizCfg||{};
   var lines=['<b>Como jogar esta questão:</b>',
