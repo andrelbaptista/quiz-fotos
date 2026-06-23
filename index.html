@@ -2333,47 +2333,84 @@ function blinkNav(){
   var prev=document.getElementById('btn-prev-q');
   if(prev&&prev.style.display!=='none')setTimeout(function(){blinkEl(prev,'warn',4);},400);
 }
+function getQuizHelpText(q,withIcon){
+  if(!q)return withIcon?'❓ Escolha a alternativa correta.':'Escolha a alternativa correta.';
+  var qtype=q.qtype||'photo';
+  var clockMode=q.clockMode||'analog';
+  var h=String(q.clockHour||10).padStart(2,'0');
+  var m=String(q.clockMinute||0).padStart(2,'0');
+  var hhmm=h+':'+m;
+  var numOpLabels={maior:'maior',menor:'menor',soma:'soma',diferenca:'diferença'};
+  var shapeNames={circle:'círculo',square:'quadrado',triangle:'triângulo',rectangle:'retângulo',star:'estrela',heart:'coração',diamond:'losango'};
+  var periodLabel={madrugada:'Madrugada (0h–5h)',manha:'Manhã (6h–11h)',tarde:'Tarde (12h–17h)',noite:'Noite (18h–23h)'}[q.correctPeriod||'manha']||'período do dia';
+  var sym={BRL:'R$',USD:'US$',EUR:'€'}[q.moneyCurrency||'BRL']||'R$';
+  var calcOpSym={'+':'mais','-':'menos','×':'vezes','÷':'dividido por'}[q.calcOp||'+']||'+';
+  var txt='';
+  if(qtype==='clock'){
+    if(clockMode==='period'){
+      var periodGuess=parseInt(q.clockHour||10)<6?'Madrugada':parseInt(q.clockHour||10)<12?'Manhã':parseInt(q.clockHour||10)<18?'Tarde':'Noite';
+      txt=(withIcon?'🌅 ':'')+('O relógio digital marca '+hhmm+'. Que período do dia é esse? Madrugada, Manhã, Tarde ou Noite?');
+    } else if(clockMode==='digital'){
+      txt=(withIcon?'💻 ':'')+('O display mostra '+hhmm+'. Escolha o horário correto nas alternativas.');
+    } else {
+      txt=(withIcon?'🕐 ':'')+('O relógio de ponteiros marca '+hhmm+'. Escolha o horário correto nas alternativas.');
+    }
+  } else if(qtype==='period'){
+    txt=(withIcon?'🌅 ':'')+('O relógio digital marca '+hhmm+'. Que período do dia é esse? Madrugada, Manhã, Tarde ou Noite?');
+  } else if(qtype==='number'){
+    var nm=q.numberMode||'compare';
+    if(nm==='compare'){
+      var op=q.numOp||'maior';
+      var opLabel=numOpLabels[op]||'maior';
+      if(op==='soma')txt=(withIcon?'🔢 ':'')+('Qual é a soma de '+q.num1+' mais '+q.num2+'?');
+      else if(op==='diferenca')txt=(withIcon?'🔢 ':'')+('Qual é a diferença entre '+q.num1+' e '+q.num2+'?');
+      else txt=(withIcon?'🔢 ':'')+('Entre '+q.num1+' e '+q.num2+', qual é o '+opLabel+'?');
+    } else if(nm==='exact'){
+      txt=(withIcon?'🔢 ':'')+('Que número é este? Escolha a alternativa correta.');
+    } else if(nm==='range'){
+      txt=(withIcon?'🔢 ':'')+('O número está entre '+q.numRangeMin+' e '+q.numRangeMax+'. Qual é ele?');
+    } else if(nm==='calc'){
+      txt=(withIcon?'🔢 ':'')+('Quanto é '+q.calcA+' '+calcOpSym+' '+q.calcB+'? Escolha a alternativa correta.');
+    }
+  } else if(qtype==='money'){
+    var val=q.moneyValue||10;
+    txt=(withIcon?'💰 ':'')+('A nota exibida vale '+sym+' '+val+',00. Escolha o valor correto nas alternativas.');
+  } else if(qtype==='shapes'){
+    var sname=shapeNames[q.shapesMain||'circle']||'forma';
+    var smode=q.shapesMode||'identify';
+    if(smode==='color')txt=(withIcon?'🔷 ':'')+('Qual é a cor desta forma? Escolha a alternativa correta.');
+    else txt=(withIcon?'🔷 ':'')+('Esta forma é um '+sname+'. Escolha o nome correto nas alternativas.');
+  } else if(qtype==='words'){
+    var wt=q.wordsText||'palavra';
+    txt=(withIcon?'💬 ':'')+('A palavra exibida é "'+wt+'". Escolha a alternativa correta.');
+  } else if(qtype==='puzzle'){
+    txt=(withIcon?'🧩 ':'')+('Arraste cada peça para o buraco correspondente na imagem. Toque 2x na peça para girá-la 90°.');
+  } else if(qtype==='compare'){
+    var cop=q.compareOp||'igual';
+    var copLabels={igual:'São iguais?',maior:'Qual é maior?',menor:'Qual é menor?'};
+    txt=(withIcon?'⚖️ ':'')+((copLabels[cop]||'Compare os dois')+' Observe os dois lados e escolha a resposta.');
+  } else if(qtype==='doc'){
+    txt=(withIcon?'📄 ':'')+('Leia o documento ou texto exibido e escolha a alternativa correta.');
+  } else if(qtype==='photo'){
+    txt=(withIcon?'📷 ':'')+('Observe a foto e escolha a alternativa correta.');
+  } else {
+    txt=(withIcon?'❓ ':'')+('Escolha a alternativa correta.');
+  }
+  return txt;
+}
 function speakQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
   if(!q)return;
-  var qtype=q.qtype||'photo';
-  if(qtype==='clock'&&q.clockMode==='period')qtype='period';
-  var typeInstructions={
-    photo:'Observe a foto e escolha a alternativa correta.',
-    clock:'Veja o relógio com ponteiros e escolha a hora correta nas alternativas.',
-    period:'Veja o horário no relógio digital e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
-    money:'Identifique o valor da nota e escolha a resposta.',
-    number:'Analise os números e escolha a resposta correta.',
-    puzzle:'Arraste as peças para completar a imagem. Toque duas vezes para girar a peça.',
-    words:'Leia a palavra e escolha a resposta.',
-    shapes:'Observe a forma e diga o nome em voz alta.',
-    doc:'Leia o documento e responda.',
-    compare:'Observe as duas imagens e responda a pergunta.'
-  };
-  var instruction=typeInstructions[qtype]||'Escolha a alternativa correta.';
-  // Read question text first, then instruction
-  var msg=q.text ? q.text+'. '+instruction : instruction;
+  var instruction=getQuizHelpText(q,false);
+  var msg=q.text?q.text+'. '+instruction:instruction;
   setTimeout(function(){speak(msg);},400);
 }
 function showQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
-  var qtype=q?q.qtype||'photo':'photo';
-  if(q&&qtype==='clock'&&q.clockMode==='period')qtype='period';
-  var typeHelp={
-    photo:'📷 Observe a foto e escolha a alternativa correta.',
-    clock:'🕐 Veja o relógio com ponteiros e escolha a hora correta nas alternativas.',
-    period:'🌅 Veja o horário no relógio digital e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
-    money:'💰 Identifique o valor da nota e escolha a resposta.',
-    number:'🔢 Analise o número e responda.',
-    puzzle:'🧩 Arraste as peças para completar a imagem. Toque 2x para girar.',
-    words:'💬 Leia a palavra e escolha a resposta.',
-    shapes:'🔷 Observe a forma e responda.',
-    doc:'📄 Leia o documento e responda.',
-    compare:'⚖️ Compare as duas imagens ou formas e responda.'
-  };
   var cfg=quizCfg||{};
+  var helpText=getQuizHelpText(q,true);
   var lines=['<b>Como jogar esta questão:</b>',
-    typeHelp[qtype]||'Escolha a alternativa correta.',
+    helpText,
     '',
     cfg.attempts>0?'🔁 Tentativas: '+cfg.attempts:'🔁 Tentativas: ilimitadas',
     cfg.voiceAnswer?'🎤 Aceita resposta por voz — clique 🎤 e fale':'',
