@@ -2337,9 +2337,10 @@ function speakQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
   if(!q)return;
   var qtype=q.qtype||'photo';
-  // Se for relógio no modo período, tratar como 'period' na instrução de voz
   if(qtype==='clock'&&q.clockMode==='period')qtype='period';
   var typeInstructions={
+    photo:'Observe a foto e escolha a alternativa correta.',
+    clock:'Veja o relógio com ponteiros e escolha a hora correta nas alternativas.',
     period:'Veja o horário no relógio digital e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
     money:'Identifique o valor da nota e escolha a resposta.',
     number:'Analise os números e escolha a resposta correta.',
@@ -2357,8 +2358,7 @@ function speakQuizHelp(){
 function showQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
   var qtype=q?q.qtype||'photo':'photo';
-  // Se for relógio no modo período, tratar como 'period' no texto de ajuda
-  if(qtype==='clock'&&q&&q.clockMode==='period')qtype='period';
+  if(q&&qtype==='clock'&&q.clockMode==='period')qtype='period';
   var typeHelp={
     photo:'📷 Observe a foto e escolha a alternativa correta.',
     clock:'🕐 Veja o relógio com ponteiros e escolha a hora correta nas alternativas.',
