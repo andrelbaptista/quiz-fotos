@@ -354,9 +354,73 @@ svg.hist-chart{display:block;max-width:100%;}
 .user-check-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
 .user-check-item:last-child{border-bottom:none;}
 .user-check-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
+
+/* ── SPLASH SCREEN ── */
+#splash-screen{
+  position:fixed;inset:0;background:#000;z-index:2147483647;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  isolation:isolate;
+}
+#splash-left{
+  position:absolute;top:0;bottom:0;right:50%;width:51%;
+  background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  transform:translateX(-100%);
+  transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
+  z-index:2147483647;
+}
+#splash-right{
+  position:absolute;top:0;bottom:0;left:50%;width:51%;
+  background:#111;
+  border-left:2px solid #333;
+  display:flex;align-items:center;justify-content:center;
+  transform:translateX(100%);
+  transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
+  z-index:2147483647;
+}
+#splash-deep{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+  font-size:min(13vw,110px);font-weight:900;color:#000;
+  letter-spacing:-2px;text-transform:uppercase;user-select:none;
+  pointer-events:none;
+}
+#splash-tech{
+  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+  font-size:min(13vw,110px);font-weight:900;color:#fff;
+  letter-spacing:-2px;text-transform:uppercase;user-select:none;
+  pointer-events:none;
+}
+#splash-screen.reveal #splash-left{transform:translateX(0);}
+#splash-screen.reveal #splash-right{transform:translateX(0);}
+#splash-screen.fade-out{opacity:0;transition:opacity 0.45s ease;pointer-events:none;}
+
+/* ── BOTÃO DE AJUDA SEMPRE ANIMADO ── */
+@keyframes help-pulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(245,166,35,0.7);background:var(--surface2);}
+  50%{transform:scale(1.25);box-shadow:0 0 0 6px rgba(245,166,35,0);background:#f5a623;color:#fff;}
+}
+#quiz-help-btn{animation:help-pulse 1.4s ease-in-out infinite !important;}
+#quiz-help-btn.used{animation:help-pulse 1.4s ease-in-out infinite !important;opacity:1;}
+#quiz-help-btn.depleted{animation:none !important;opacity:0.35;cursor:not-allowed;}
+
+/* ── MODO VISUAL DA QUESTÃO ── */
+.listen-only-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--purple-bg);color:var(--purple-text);
+  border:0.5px solid var(--purple);border-radius:20px;
+  font-size:12px;font-weight:700;padding:4px 12px;
+  margin-bottom:10px;
+}
+
 </style>
 </head>
 <body>
+<!-- SPLASH SCREEN -->
+<div id="splash-screen">
+  <div id="splash-left"><span id="splash-deep">DEEP</span></div>
+  <div id="splash-right"><span id="splash-tech">TECH</span></div>
+</div>
+
 <div id="msg-bar">
   <span id="msg-bar-text"></span>
   <button id="msg-bar-close" onclick="closeMsg()">✕</button>
@@ -786,12 +850,25 @@ svg.hist-chart{display:block;max-width:100%;}
         </div>
         <!-- VOICE CONFIG -->
         <div class="cfg-row" style="margin-bottom:8px;">
-          <div><div class="cfg-row-label">🔊 Ler pergunta em voz alta</div></div>
-          <input type="checkbox" id="cfg-voice-read" style="width:20px;height:20px;accent-color:var(--blue);cursor:pointer;">
+          <div>
+            <div class="cfg-row-label">👁 Modo de exibição</div>
+            <div class="cfg-row-sub">Como a questão é apresentada ao jogador</div>
+          </div>
+          <select id="cfg-display-mode" style="width:auto;min-width:160px;padding:8px 10px;font-size:13px;">
+            <option value="see_hear">👁🔊 Ver e ouvir</option>
+            <option value="hear_only">🔊 Só ouvir</option>
+          </select>
         </div>
-        <div class="cfg-row" style="margin-bottom:14px;">
+        <div class="cfg-row" style="margin-bottom:8px;">
           <div><div class="cfg-row-label">🎤 Aceitar resposta por voz</div></div>
           <input type="checkbox" id="cfg-voice-answer" style="width:20px;height:20px;accent-color:var(--blue);cursor:pointer;">
+        </div>
+        <div class="cfg-row" style="margin-bottom:14px;">
+          <div>
+            <div class="cfg-row-label">🔁 Tentativas de ouvir (❓)</div>
+            <div class="cfg-row-sub">Quantas vezes pode tocar ❓ · 0 = ilimitado</div>
+          </div>
+          <input type="number" id="cfg-listen-attempts" min="0" max="10" value="3" style="width:60px;text-align:center;">
         </div>
         <div class="alts-header" id="alts-header"><span>Alternativas</span><button class="btn btn-sm" onclick="addAlt()">+ Alternativa</button></div>
         <div id="alts-container"></div>
@@ -1053,6 +1130,54 @@ svg.hist-chart{display:block;max-width:100%;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>
+
+/* ── SPLASH SCREEN ── */
+(function(){
+  function showSplash(){
+    var splash=document.getElementById('splash-screen');
+    if(!splash)return;
+    // Reset estado anterior
+    splash.style.display='flex';
+    splash.style.opacity='1';
+    splash.classList.remove('reveal','fade-out');
+    var left=document.getElementById('splash-left');
+    var right=document.getElementById('splash-right');
+    if(left)left.style.transform='translateX(-100%)';
+    if(right)right.style.transform='translateX(100%)';
+    setTimeout(function(){
+      splash.classList.add('reveal');
+      setTimeout(function(){
+        splash.classList.add('fade-out');
+        setTimeout(function(){splash.style.display='none';},480);
+      },1200);
+    },80);
+  }
+
+  // B) Primeira vez na sessão
+  if(!sessionStorage.getItem('splash_shown')){
+    sessionStorage.setItem('splash_shown','1');
+    showSplash();
+  } else {
+    // Já mostrou nesta sessão — esconde imediatamente
+    var splash=document.getElementById('splash-screen');
+    if(splash)splash.style.display='none';
+  }
+
+  // C) Quando volta do background (PWA, troca de aba)
+  var hiddenAt=null;
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden){
+      hiddenAt=Date.now();
+    } else {
+      // Só mostra se ficou em background por mais de 30 segundos
+      if(hiddenAt&&(Date.now()-hiddenAt)>30000){
+        showSplash();
+      }
+      hiddenAt=null;
+    }
+  });
+})();
+
 var LETTERS=['A','B','C','D','E','F','G','H'];
 var toastTimer=null;
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
@@ -1657,8 +1782,9 @@ function editQuestion(i){
   var qtext=document.getElementById('q-text');if(qtext)qtext.value=q.text||'';
   var ca=document.getElementById('cfg-attempts');if(ca)ca.value=(q.cfg&&q.cfg.attempts!==undefined)?q.cfg.attempts:0;
   var cr=document.getElementById('cfg-result');if(cr)cr.value=(q.cfg&&q.cfg.result)?q.cfg.result:'score';
-  var cvr=document.getElementById('cfg-voice-read');if(cvr)cvr.checked=!!(q.cfg&&q.cfg.voiceRead);
   var cva=document.getElementById('cfg-voice-answer');if(cva)cva.checked=!!(q.cfg&&q.cfg.voiceAnswer);
+  var cdm=document.getElementById('cfg-display-mode');if(cdm)cdm.value=(q.cfg&&q.cfg.displayMode)||'see_hear';
+  var cla=document.getElementById('cfg-listen-attempts');if(cla)cla.value=(q.cfg&&q.cfg.listenAttempts!==undefined?q.cfg.listenAttempts:3);
   var prev=document.getElementById('photo-preview');
   var rmw=document.getElementById('photo-remove-wrap');
   if(currentPhotoData&&prev){prev.src=currentPhotoData;prev.style.display='block';}
@@ -2405,25 +2531,76 @@ function speakQuizHelp(){
   var msg=q.text?q.text+'. '+instruction:instruction;
   setTimeout(function(){speak(msg);},400);
 }
+/* Contagem de usos do ❓ por questão */
+var helpUsesPerQ=[];
 function showQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
-  var cfg=quizCfg||{};
-  var helpText=getQuizHelpText(q,true);
-  var lines=['<b>Como jogar esta questão:</b>',
-    helpText,
-    '',
-    cfg.attempts>0?'🔁 Tentativas: '+cfg.attempts:'🔁 Tentativas: ilimitadas',
-    cfg.voiceAnswer?'🎤 Aceita resposta por voz — clique 🎤 e fale':'',
-    cfg.voiceRead?'🔊 A pergunta será lida em voz alta':'',
-    '',
-    '⏭ <b>Pular</b> — avança sem responder',
-    '← <b>Anterior</b> — volta e limpa a resposta',
-    '❓ <b>Ajuda</b> — este painel'
-  ].filter(Boolean).join('<br>');
-  var modal=document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML='<div style="background:#1c1c1e;border:1px solid rgba(255,255,255,0.15);border-radius:var(--radius);padding:24px;max-width:340px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.8);"><p style="margin:0 0 16px;line-height:1.9;font-size:15px;color:#f0f0f0;">'+lines+'</p><button class="btn btn-primary btn-block" onclick="this.parentNode.parentNode.remove()">Entendido ✓</button></div>';
-  document.body.appendChild(modal);
+  if(!q)return;
+  var cfg=q.cfg||{};
+  var maxListen=cfg.listenAttempts!==undefined?parseInt(cfg.listenAttempts):3;
+  // Init counter for this question index
+  if(!helpUsesPerQ[currentQIdx])helpUsesPerQ[currentQIdx]=0;
+  // Check if depleted
+  var btn=document.getElementById('quiz-help-btn');
+  if(maxListen>0&&helpUsesPerQ[currentQIdx]>=maxListen){
+    // Esgotado — marca erro e avança
+    if(answers[currentQIdx].chosen===-1){
+      answers[currentQIdx].chosen=0;answers[currentQIdx].correct=false;
+      answers[currentQIdx].attempts=(answers[currentQIdx].attempts||0)+1;
+      playError();showEmoji('❌');journeyWrongAnswer();
+      renderQuizNav(true);
+      setTimeout(function(){blinkNav();},500);
+    }
+    return;
+  }
+  // Desconta 1 uso
+  helpUsesPerQ[currentQIdx]++;
+  // Atualizar visual do botão
+  updateHelpBtn();
+  // Falar a questão adaptada
+  var txt=getQuizHelpText(q,false);
+  speak(txt);
+  // Animação de feedback no botão
+  if(btn){
+    btn.style.transform='scale(1.4)';
+    setTimeout(function(){btn.style.transform='';},300);
+  }
+  // Se esgotou agora, marca como depleted
+  if(maxListen>0&&helpUsesPerQ[currentQIdx]>=maxListen){
+    setTimeout(function(){
+      if(btn)btn.classList.add('depleted');
+      // Marca erro e avança após breve pausa
+      setTimeout(function(){
+        if(answers[currentQIdx].chosen===-1){
+          answers[currentQIdx].chosen=0;answers[currentQIdx].correct=false;
+          answers[currentQIdx].attempts=(answers[currentQIdx].attempts||0)+1;
+          playError();showEmoji('❌');journeyWrongAnswer();
+          renderQuizNav(true);
+          setTimeout(function(){blinkNav();},500);
+        }
+      },1800);
+    },600);
+  }
+}
+function updateHelpBtn(){
+  var q=activeQuestions[quizOrder[currentQIdx]];
+  if(!q)return;
+  var cfg=q.cfg||{};
+  var maxListen=cfg.listenAttempts!==undefined?parseInt(cfg.listenAttempts):3;
+  var used=helpUsesPerQ[currentQIdx]||0;
+  var btn=document.getElementById('quiz-help-btn');
+  if(!btn)return;
+  if(maxListen===0){
+    // Ilimitado — só mostra ❓
+    btn.innerHTML='❓';
+    btn.classList.remove('depleted');
+    return;
+  }
+  var rem=maxListen-used;
+  btn.classList.toggle('depleted',rem<=0);
+  // Mostra contador regressivo
+  var color=rem>1?'#f5a623':rem===1?'#d93025':'#888';
+  btn.innerHTML='❓<span style="font-size:10px;font-weight:900;display:block;line-height:1;color:'+color+';">'+Math.max(0,rem)+'x</span>';
 }
 // ── COMPARE TYPE ──
 var compareImgA=null,compareImgB=null;
@@ -2552,8 +2729,9 @@ function resetAddForm(){
   document.getElementById('photo-remove-wrap').style.display='none';
   document.getElementById('cfg-attempts').value='0';
   document.getElementById('cfg-result').value='score';
-  var vr=document.getElementById('cfg-voice-read');if(vr)vr.checked=false;
   var va=document.getElementById('cfg-voice-answer');if(va)va.checked=false;
+  var cdm2=document.getElementById('cfg-display-mode');if(cdm2)cdm2.value='see_hear';
+  var cla2=document.getElementById('cfg-listen-attempts');if(cla2)cla2.value='3';
   currentPhotoData=null;currentAlts=[];
   // Reset all type configs to defaults
   var ch=document.getElementById('clock-hour');if(ch)ch.value=10;
@@ -2594,14 +2772,15 @@ function saveQuestion(){
   }
   if((qtype==='puzzle')&&!currentPhotoData){showError('Adicione uma foto para o quebra-cabeça antes de salvar.');return;}
   var quiz=getQuiz(activeQuizId);if(!quiz)return;
-  var voiceRead=document.getElementById('cfg-voice-read')&&document.getElementById('cfg-voice-read').checked;
   var voiceAnswer=document.getElementById('cfg-voice-answer')&&document.getElementById('cfg-voice-answer').checked;
+  var displayMode=(document.getElementById('cfg-display-mode')?document.getElementById('cfg-display-mode').value:'see_hear');
+  var listenAttempts=parseInt(document.getElementById('cfg-listen-attempts')?document.getElementById('cfg-listen-attempts').value:3)||3;
   var q={
     qtype:qtype,
     photo:currentPhotoData,
     text:document.getElementById('q-text').value.trim(),
     alts:(['photo','clock','money','doc','words','shapes','number','compare'].indexOf(qtype)!==-1)?currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}):undefined,
-    cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value,voiceRead:voiceRead,voiceAnswer:voiceAnswer}
+    cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value,voiceAnswer:voiceAnswer,displayMode:displayMode,listenAttempts:listenAttempts}
   };
   // Type-specific config
   if(qtype==='clock'){q.clockHour=parseInt(document.getElementById('clock-hour').value)||10;q.clockMinute=parseInt(document.getElementById('clock-minute').value)||0;q.clockMode=document.getElementById('clock-mode')?document.getElementById('clock-mode').value:'analog';}
@@ -3528,6 +3707,7 @@ function startQuizById(id){
   quizOrder=activeQuestions.map(function(_,i){return i;});
   currentQIdx=0;
   answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});
+  helpUsesPerQ=[];
   currentAttempts=0;
   showScreen('quiz');
   document.getElementById('screen-title').textContent=quiz.name;
@@ -3550,6 +3730,7 @@ function renderQuizQ(){
   }
 
   quizCfg=getQCfg(qi);
+  if(!helpUsesPerQ[currentQIdx])helpUsesPerQ[currentQIdx]=0;
   if(!answers||!answers[currentQIdx]){
     answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});
   }
@@ -3562,6 +3743,7 @@ function renderQuizQ(){
   if(counterEl)counterEl.textContent='Questão '+(currentQIdx+1)+' de '+total;
   var fillEl=document.getElementById('progress-fill');
   if(fillEl)fillEl.style.width=(currentQIdx/total*100)+'%';
+  updateHelpBtn();
   var badge=document.getElementById('attempts-badge');
   if(badge){
     if(quizCfg.attempts>0){
@@ -3590,9 +3772,26 @@ function renderQuizQ(){
   // Treat false/null/undefined as no photo
   var hasPhoto=q.photo&&typeof q.photo==='string'&&q.photo.length>10;
   // Types that always render their own interactive display — never use quiz-img
+  // Modo "Só ouvir": oculta o visual do tipo mas mantém enunciado
+  var isHearOnly=(q.cfg&&q.cfg.displayMode==='hear_only');
+  // Remover badge anterior se existir
+  var oldBadge=document.getElementById('listen-only-badge');if(oldBadge)oldBadge.remove();
+  if(isHearOnly){
+    var badge2=document.createElement('div');badge2.id='listen-only-badge';badge2.className='listen-only-badge';
+    badge2.innerHTML='🔊 Toque em ❓ para ouvir a questão';
+    var titleBox2=document.getElementById('quiz-title-box');
+    if(titleBox2&&titleBox2.parentNode)titleBox2.parentNode.insertBefore(badge2,titleBox2);
+  }
   var neverShowImg=['puzzle','shapes','number','clock','money','period','words','compare'];
+  if(isHearOnly)neverShowImg=['puzzle','shapes','number','clock','money','period','words','compare','photo','doc','compare'];
   var imgWrap=document.getElementById('quiz-img-wrap');
-  if(neverShowImg.indexOf(qtype)!==-1){
+  if(isHearOnly||(neverShowImg.indexOf(qtype)!==-1&&!(qtype==='photo'||qtype==='doc'||qtype==='puzzle'))){
+    if(imgWrap)imgWrap.style.display='none';
+    img.style.display='none';
+    var titleBar2x=document.getElementById('quiz-img-title-bar');
+    if(titleBar2x)titleBar2x.style.display='none';
+  }
+  if(isHearOnly||(neverShowImg.indexOf(qtype)!==-1)){
     if(imgWrap)imgWrap.style.display='none';
     img.style.display='none';
     var titleBar2=document.getElementById('quiz-img-title-bar');
@@ -3663,6 +3862,8 @@ function renderQuizQ(){
   function doRender(){
     var hasP=q.photo&&typeof q.photo==='string'&&q.photo.length>10;
     var qtype2=q.qtype||'photo';
+    // Modo só ouvir: não renderiza visual do tipo, só alternativas
+    if(isHearOnly){renderQuizAlts(answers[currentQIdx].chosen!==-1);return;}
     // Types that need special rendering even when photo exists
     var specialTypes=['puzzle','period','number','shapes','words','clock','money','compare'];
     if(hasP&&specialTypes.indexOf(qtype)===-1){
@@ -3685,20 +3886,7 @@ function renderQuizQ(){
   // Blink available actions after render
   setTimeout(function(){blinkCurrentAlts();},600);
 
-  // Blink help button 5x and speak instructions
-  setTimeout(function(){
-    var hb=document.getElementById('quiz-help-btn');
-    if(hb){
-      var bc=0;
-      hb.style.animation='help-blink 0.5s ease-in-out';
-      var blinkInterval=setInterval(function(){
-        bc++;
-        hb.style.animation='none';
-        setTimeout(function(){hb.style.animation='help-blink 0.5s ease-in-out';},50);
-        if(bc>=5){clearInterval(blinkInterval);setTimeout(function(){hb.style.animation='';},600);}
-      },550);
-    }
-  },200);
+  // Help btn agora pulsa continuamente via CSS — sem animação manual
   // Voice + nav run after render
   setTimeout(function(){
     var ae=document.getElementById('quiz-alts');
@@ -4266,6 +4454,7 @@ function restartQuiz(){
   var vo=document.getElementById('victory-overlay');
   if(vo)vo.style.display='none';
   answers=quizOrder.map(function(){return{chosen:-1,attempts:0,correct:false};});
+  helpUsesPerQ=[];
   currentQIdx=0;currentAttempts=0;
   journeyCorrect=0;
   resetJourneyArrival();
