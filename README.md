@@ -38,6 +38,28 @@ repositório/
 
 ## Funcionalidades principais
 
+### Splash screen (tela de abertura)
+- Animação **split reveal** ao abrir o app: "DEEP" desliza da esquerda e "TECH" da direita
+- Logo DeepTech com linha divisória animada ao centro
+- Duração total ~3s com fade-out suave
+- Fundo preto; funciona em todos os dispositivos e tamanhos de tela
+
+### Capa do quiz
+O admin pode personalizar a capa de cada quiz com três modos (acessível em ✏️ Editar quiz):
+
+| Modo | Descrição |
+|------|-----------|
+| 😊 **Ícone** | Escolha entre 36 ícones motivacionais pré-carregados (❤️ ⭐ 🏆 🎯 🔥 💪 🦋 🚀 etc.) |
+| ✏️ **Texto** | Escreva uma palavra/sigla com escolha de cor (6 opções) e tamanho (P/M/G) |
+| 🖼 **Imagem** | Upload de foto própria (qualquer formato de imagem) |
+
+A capa aparece em todos os lugares onde o quiz é exibido: lista de quizzes do jogador, painel admin e histórico.
+
+### Renomear quiz
+- O admin pode alterar o nome de um quiz existente sem tocar nas questões
+- Disponível em ✏️ Editar quiz (mesmo modal da capa)
+- O novo nome é propagado em todos os lugares onde o quiz aparece
+
 ### Criação de questões
 - Formulário com preview em tempo real por tipo
 - Alternativas clicáveis para questões de cédulas (grade visual de notas)
@@ -152,9 +174,21 @@ Para forçar atualização imediata no Chrome:
 
 ---
 
+## Histórico de versões
+
+| Versão | Mudança principal |
+|--------|-------------------|
+| 2.8 | Base com todos os tipos de questão, journey, TTS, GitHub sync |
+| 2.9 | Splash screen DeepTech (split reveal), capa de quiz (ícone/texto/imagem), renomear quiz |
+
+---
+
 ## Notas técnicas para IAs
 
-- App inteiramente em **um único `index.html`** (~340KB com imagens embutidas em base64)
+- App inteiramente em **um único `index.html`** (~390KB com imagens embutidas em base64)
+- **Splash screen**: `#splash-screen` com `#splash-left`, `#splash-right`, `#splash-divider`; IIFE no início do `<script>` adiciona `.reveal` após 80ms e `.fade-out` após 3s; logo DeepTech embutido como texto CSS (sem imagem externa)
+- **Capa do quiz**: campo `quiz.cover = {type, ...}` no modelo de dados; tipos: `'icon'` (campo `icon`), `'text'` (campos `text`, `color`, `size`), `'img'` (campo `data` em base64); função `getQuizCoverHtml(quiz)` renderiza a capa em todos os cards; `buildCoverModal(quiz)` monta o seletor de capa no modal de edição
+- **Renomear**: `editQuizMeta` agora salva `quiz.name` + `quiz.cover`; chama `renderQuizList()` e `renderAdminQuizList()` para atualizar todos os lugares
 - Sem dependências externas de JS (vanilla JS puro)
 - Imagens das cédulas BR (R$ 2–200) embutidas como `data:image/jpeg;base64`
 - Funções chave: `renderQuizQ`, `doRender`, `buildResults`, `renderClockQuestion`, `renderMoneyQuestion`, `renderPuzzleQuestion`, `renderShapesQuestion`, `renderPeriodQuestion`, `renderNumberQuestion`, `buildMoneyAdminGrids`, `handleVoiceAnswer`, `placePiece`, `puzzleWrongAttempt`
