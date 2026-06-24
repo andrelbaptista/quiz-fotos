@@ -1204,7 +1204,19 @@ async function doLogin(){
   // Sync usuários do GitHub antes de autenticar
   await syncUsersFromGitHub();
   var h=await sha256(p);
-  var user=getUsers().find(function(x){return x.username===u&&x.hash===h;});
+  // Aceita hash completo (64) ou parcial (40 chars - bug legado do GitHub)
+  var user=getUsers().find(function(x){
+    if(x.username!==u)return false;
+    if(x.hash===h)return true;
+    // Fallback: hash truncado (40 chars) — compara primeiros 40 chars
+    if(x.hash&&x.hash.length===40&&h.indexOf(x.hash)===0)return true;
+    return false;
+  });
+  // Se achou com hash truncado, corrigir para o hash completo
+  if(user&&user.hash&&user.hash.length===40){
+    user.hash=h;
+    saveUsers(getUsers().map(function(x){return x.username===user.username?user:x;}));
+  }
   if(btn){btn.disabled=false;btn.textContent='Entrar';}
   if(!user){loginErr('Usuário ou senha incorretos.');return;}
   currentUser={username:user.username,role:user.role||'player'};
@@ -1232,11 +1244,12 @@ function syncUsersFromGitHub(){
           json.users.forEach(function(gu){
             var exists=merged.find(function(lu){return lu.username===gu.username;});
             if(exists){
-              // Atualiza hash se veio do GitHub (mais recente)
-              exists.hash=gu.hash;
+              // Só atualiza hash se o do GitHub for válido (64 chars = SHA256 completo)
+              if(gu.hash&&gu.hash.length===64){exists.hash=gu.hash;}
               exists.role=gu.role||exists.role;
             } else {
-              merged.push(gu);
+              // Só adiciona se o hash for válido
+              if(gu.hash&&gu.hash.length===64){merged.push(gu);}
             }
           });
           saveUsers(merged);
@@ -1399,7 +1412,15 @@ function loadFromGitHub(onDone){
         var localUsers=getUsers();
         var merged=localUsers.slice();
         json.users.forEach(function(gu){
-          if(!merged.find(function(lu){return lu.username===gu.username;})){merged.push(gu);}
+          var exists2=merged.find(function(lu){return lu.username===gu.username;});
+          if(!exists2){
+            // Só adiciona se hash válido (64 chars)
+            if(gu.hash&&gu.hash.length===64)merged.push(gu);
+          } else {
+            // Só atualiza role, nunca sobrescreve hash local com hash truncado
+            if(gu.hash&&gu.hash.length===64)exists2.hash=gu.hash;
+            exists2.role=gu.role||exists2.role;
+          }
         });
         saveUsers(merged);
       }
