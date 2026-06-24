@@ -356,55 +356,18 @@ svg.hist-chart{display:block;max-width:100%;}
 .user-check-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
 
 /* ── SPLASH SCREEN ── */
-#splash-screen{
-  position:fixed;inset:0;background:#000;z-index:2147483647;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;
-  isolation:isolate;
-}
-#splash-left{
-  position:absolute;top:0;bottom:0;right:50%;width:51%;
-  background:#fff;
-  display:flex;align-items:center;justify-content:center;
-  transform:translateX(-100%);
-  transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
-  z-index:2147483647;
-}
-#splash-right{
-  position:absolute;top:0;bottom:0;left:50%;width:51%;
-  background:#111;
-  border-left:2px solid #333;
-  display:flex;align-items:center;justify-content:center;
-  transform:translateX(100%);
-  transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);
-  z-index:2147483647;
-}
-#splash-deep{
-  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
-  font-size:min(13vw,110px);font-weight:900;color:#000;
-  letter-spacing:-2px;text-transform:uppercase;user-select:none;
-  pointer-events:none;
-}
-#splash-tech{
-  font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
-  font-size:min(13vw,110px);font-weight:900;color:#fff;
-  letter-spacing:-2px;text-transform:uppercase;user-select:none;
-  pointer-events:none;
-}
+#splash-screen{position:fixed;inset:0;background:#000;z-index:2147483647;display:flex;align-items:center;justify-content:center;overflow:hidden;isolation:isolate;}
+#splash-left{position:absolute;top:0;bottom:0;right:50%;width:51%;background:#fff;display:flex;align-items:center;justify-content:center;transform:translateX(-100%);transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);z-index:2147483647;}
+#splash-right{position:absolute;top:0;bottom:0;left:50%;width:51%;background:#111;border-left:2px solid #333;display:flex;align-items:center;justify-content:center;transform:translateX(100%);transition:transform 0.75s cubic-bezier(0.16,1,0.3,1);z-index:2147483647;}
+#splash-deep{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;font-size:min(13vw,110px);font-weight:900;color:#000;letter-spacing:-2px;text-transform:uppercase;user-select:none;pointer-events:none;}
+#splash-tech{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;font-size:min(13vw,110px);font-weight:900;color:#fff;letter-spacing:-2px;text-transform:uppercase;user-select:none;pointer-events:none;}
 #splash-screen.reveal #splash-left{transform:translateX(0);}
 #splash-screen.reveal #splash-right{transform:translateX(0);}
 #splash-screen.fade-out{opacity:0;transition:opacity 0.45s ease;pointer-events:none;}
 
 /* ── POPUP DE AJUDA DO QUIZ ── */
-.quiz-help-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;
-  display:flex;align-items:center;justify-content:center;padding:16px;
-}
-.quiz-help-box{
-  background:var(--surface);border-radius:var(--radius);
-  padding:24px 20px;width:100%;max-width:380px;
-  max-height:85vh;overflow-y:auto;
-  box-shadow:0 8px 40px rgba(0,0,0,0.5);
-}
+.quiz-help-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;}
+.quiz-help-box{background:var(--surface);border-radius:var(--radius);padding:24px 20px;width:100%;max-width:380px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.5);}
 .quiz-help-title{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 .quiz-help-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border);}
 .quiz-help-item:last-of-type{border-bottom:none;}
@@ -850,6 +813,10 @@ svg.hist-chart{display:block;max-width:100%;}
         </div>
         <!-- VOICE CONFIG -->
         <div class="cfg-row" style="margin-bottom:8px;">
+          <div><div class="cfg-row-label">🔊 Ler pergunta em voz alta</div></div>
+          <input type="checkbox" id="cfg-voice-read" style="width:20px;height:20px;accent-color:var(--blue);cursor:pointer;">
+        </div>
+        <div class="cfg-row" style="margin-bottom:14px;">
           <div><div class="cfg-row-label">🎤 Aceitar resposta por voz</div></div>
           <input type="checkbox" id="cfg-voice-answer" style="width:20px;height:20px;accent-color:var(--blue);cursor:pointer;">
         </div>
@@ -1119,7 +1086,6 @@ svg.hist-chart{display:block;max-width:100%;}
   function showSplash(){
     var splash=document.getElementById('splash-screen');
     if(!splash)return;
-    // Reset estado anterior
     splash.style.display='flex';
     splash.style.opacity='1';
     splash.classList.remove('reveal','fade-out');
@@ -1135,27 +1101,19 @@ svg.hist-chart{display:block;max-width:100%;}
       },1200);
     },80);
   }
-
-  // B) Primeira vez na sessão
   if(!sessionStorage.getItem('splash_shown')){
     sessionStorage.setItem('splash_shown','1');
     showSplash();
   } else {
-    // Já mostrou nesta sessão — esconde imediatamente
     var splash=document.getElementById('splash-screen');
     if(splash)splash.style.display='none';
   }
-
-  // C) Quando volta do background (PWA, troca de aba)
   var hiddenAt=null;
   document.addEventListener('visibilitychange',function(){
     if(document.hidden){
       hiddenAt=Date.now();
     } else {
-      // Só mostra se ficou em background por mais de 30 segundos
-      if(hiddenAt&&(Date.now()-hiddenAt)>30000){
-        showSplash();
-      }
+      if(hiddenAt&&(Date.now()-hiddenAt)>30000){showSplash();}
       hiddenAt=null;
     }
   });
@@ -1240,12 +1198,53 @@ async function doLogin(){
   var u=document.getElementById('login-user').value.trim().toLowerCase();
   var p=document.getElementById('login-pass').value;
   if(!u||!p){loginErr('Preencha usuário e senha.');return;}
+  // Mostrar loading
+  var btn=document.getElementById('btn-login-submit');
+  if(btn){btn.disabled=true;btn.textContent='Verificando...';}
+  // Sync usuários do GitHub antes de autenticar
+  await syncUsersFromGitHub();
   var h=await sha256(p);
   var user=getUsers().find(function(x){return x.username===u&&x.hash===h;});
+  if(btn){btn.disabled=false;btn.textContent='Entrar';}
   if(!user){loginErr('Usuário ou senha incorretos.');return;}
   currentUser={username:user.username,role:user.role||'player'};
   localStorage.setItem('quiz_session',JSON.stringify(currentUser));
   enterApp();
+}
+
+// Busca usuários do GitHub e mescla com localStorage ANTES do login
+function syncUsersFromGitHub(){
+  return new Promise(function(resolve){
+    var cfg=getCfg();
+    var repoUser=cfg.user||'andrelbaptista';
+    var repoName=cfg.repo||'quiz-fotos';
+    var repoFile=cfg.file||'quiz-data.json';
+    var rawUrl='https://raw.githubusercontent.com/'+repoUser+'/'+repoName+'/main/'+repoFile+'?t='+Date.now();
+    fetch(rawUrl,{cache:'no-store'})
+      .then(function(r){
+        if(!r.ok)return null;
+        return r.json();
+      })
+      .then(function(json){
+        if(json&&json.users&&Array.isArray(json.users)){
+          var localUsers=getUsers();
+          var merged=localUsers.slice();
+          json.users.forEach(function(gu){
+            var exists=merged.find(function(lu){return lu.username===gu.username;});
+            if(exists){
+              // Atualiza hash se veio do GitHub (mais recente)
+              exists.hash=gu.hash;
+              exists.role=gu.role||exists.role;
+            } else {
+              merged.push(gu);
+            }
+          });
+          saveUsers(merged);
+        }
+        resolve();
+      })
+      .catch(function(){resolve();});
+  });
 }
 
 async function doRegister(){
@@ -1765,8 +1764,8 @@ function editQuestion(i){
   var qtext=document.getElementById('q-text');if(qtext)qtext.value=q.text||'';
   var ca=document.getElementById('cfg-attempts');if(ca)ca.value=(q.cfg&&q.cfg.attempts!==undefined)?q.cfg.attempts:0;
   var cr=document.getElementById('cfg-result');if(cr)cr.value=(q.cfg&&q.cfg.result)?q.cfg.result:'score';
+  var cvr=document.getElementById('cfg-voice-read');if(cvr)cvr.checked=!!(q.cfg&&q.cfg.voiceRead);
   var cva=document.getElementById('cfg-voice-answer');if(cva)cva.checked=!!(q.cfg&&q.cfg.voiceAnswer);
-
   var prev=document.getElementById('photo-preview');
   var rmw=document.getElementById('photo-remove-wrap');
   if(currentPhotoData&&prev){prev.src=currentPhotoData;prev.style.display='block';}
@@ -2441,81 +2440,29 @@ function blinkNav(){
   var prev=document.getElementById('btn-prev-q');
   if(prev&&prev.style.display!=='none')setTimeout(function(){blinkEl(prev,'warn',4);},400);
 }
-function getQuizHelpText(q,withIcon){
-  if(!q)return withIcon?'❓ Escolha a alternativa correta.':'Escolha a alternativa correta.';
-  var qtype=q.qtype||'photo';
-  var clockMode=q.clockMode||'analog';
-  var h=String(q.clockHour||10).padStart(2,'0');
-  var m=String(q.clockMinute||0).padStart(2,'0');
-  var hhmm=h+':'+m;
-  var numOpLabels={maior:'maior',menor:'menor',soma:'soma',diferenca:'diferença'};
-  var shapeNames={circle:'círculo',square:'quadrado',triangle:'triângulo',rectangle:'retângulo',star:'estrela',heart:'coração',diamond:'losango'};
-  var periodLabel={madrugada:'Madrugada (0h–5h)',manha:'Manhã (6h–11h)',tarde:'Tarde (12h–17h)',noite:'Noite (18h–23h)'}[q.correctPeriod||'manha']||'período do dia';
-  var sym={BRL:'R$',USD:'US$',EUR:'€'}[q.moneyCurrency||'BRL']||'R$';
-  var calcOpSym={'+':'mais','-':'menos','×':'vezes','÷':'dividido por'}[q.calcOp||'+']||'+';
-  var txt='';
-  if(qtype==='clock'){
-    if(clockMode==='period'){
-      var periodGuess=parseInt(q.clockHour||10)<6?'Madrugada':parseInt(q.clockHour||10)<12?'Manhã':parseInt(q.clockHour||10)<18?'Tarde':'Noite';
-      txt=(withIcon?'🌅 ':'')+('O relógio digital marca '+hhmm+'. Que período do dia é esse? Madrugada, Manhã, Tarde ou Noite?');
-    } else if(clockMode==='digital'){
-      txt=(withIcon?'💻 ':'')+('O display mostra '+hhmm+'. Escolha o horário correto nas alternativas.');
-    } else {
-      txt=(withIcon?'🕐 ':'')+('O relógio de ponteiros marca '+hhmm+'. Escolha o horário correto nas alternativas.');
-    }
-  } else if(qtype==='period'){
-    txt=(withIcon?'🌅 ':'')+('O relógio digital marca '+hhmm+'. Que período do dia é esse? Madrugada, Manhã, Tarde ou Noite?');
-  } else if(qtype==='number'){
-    var nm=q.numberMode||'compare';
-    if(nm==='compare'){
-      var op=q.numOp||'maior';
-      var opLabel=numOpLabels[op]||'maior';
-      if(op==='soma')txt=(withIcon?'🔢 ':'')+('Qual é a soma de '+q.num1+' mais '+q.num2+'?');
-      else if(op==='diferenca')txt=(withIcon?'🔢 ':'')+('Qual é a diferença entre '+q.num1+' e '+q.num2+'?');
-      else txt=(withIcon?'🔢 ':'')+('Entre '+q.num1+' e '+q.num2+', qual é o '+opLabel+'?');
-    } else if(nm==='exact'){
-      txt=(withIcon?'🔢 ':'')+('Que número é este? Escolha a alternativa correta.');
-    } else if(nm==='range'){
-      txt=(withIcon?'🔢 ':'')+('O número está entre '+q.numRangeMin+' e '+q.numRangeMax+'. Qual é ele?');
-    } else if(nm==='calc'){
-      txt=(withIcon?'🔢 ':'')+('Quanto é '+q.calcA+' '+calcOpSym+' '+q.calcB+'? Escolha a alternativa correta.');
-    }
-  } else if(qtype==='money'){
-    var val=q.moneyValue||10;
-    txt=(withIcon?'💰 ':'')+('A nota exibida vale '+sym+' '+val+',00. Escolha o valor correto nas alternativas.');
-  } else if(qtype==='shapes'){
-    var sname=shapeNames[q.shapesMain||'circle']||'forma';
-    var smode=q.shapesMode||'identify';
-    if(smode==='color')txt=(withIcon?'🔷 ':'')+('Qual é a cor desta forma? Escolha a alternativa correta.');
-    else txt=(withIcon?'🔷 ':'')+('Esta forma é um '+sname+'. Escolha o nome correto nas alternativas.');
-  } else if(qtype==='words'){
-    var wt=q.wordsText||'palavra';
-    txt=(withIcon?'💬 ':'')+('A palavra exibida é "'+wt+'". Escolha a alternativa correta.');
-  } else if(qtype==='puzzle'){
-    txt=(withIcon?'🧩 ':'')+('Arraste cada peça para o buraco correspondente na imagem. Toque 2x na peça para girá-la 90°.');
-  } else if(qtype==='compare'){
-    var cop=q.compareOp||'igual';
-    var copLabels={igual:'São iguais?',maior:'Qual é maior?',menor:'Qual é menor?'};
-    txt=(withIcon?'⚖️ ':'')+((copLabels[cop]||'Compare os dois')+' Observe os dois lados e escolha a resposta.');
-  } else if(qtype==='doc'){
-    txt=(withIcon?'📄 ':'')+('Leia o documento ou texto exibido e escolha a alternativa correta.');
-  } else if(qtype==='photo'){
-    txt=(withIcon?'📷 ':'')+('Observe a foto e escolha a alternativa correta.');
-  } else {
-    txt=(withIcon?'❓ ':'')+('Escolha a alternativa correta.');
-  }
-  return txt;
-}
 function speakQuizHelp(){
   var q=activeQuestions[quizOrder[currentQIdx]];
   if(!q)return;
-  var instruction=getQuizHelpText(q,false);
-  var msg=q.text?q.text+'. '+instruction:instruction;
+  var qtype=q.qtype||'photo';
+  var typeInstructions={
+    photo:'Observe a foto e escolha a resposta correta.',
+    clock:'Veja o relógio e escolha a hora correta.',
+    period:'Observe o horário e escolha o período do dia: Madrugada, Manhã, Tarde ou Noite.',
+    money:'Identifique o valor da nota e escolha a resposta.',
+    number:'Analise os números e escolha a resposta correta.',
+    puzzle:'Arraste as peças para completar a imagem. Toque duas vezes para girar a peça.',
+    words:'Leia a palavra e escolha a resposta.',
+    shapes:'Observe a forma e diga o nome em voz alta.',
+    doc:'Leia o documento e responda.',
+    compare:'Observe as duas imagens e responda a pergunta.'
+  };
+  var instruction=typeInstructions[qtype]||'Escolha a alternativa correta.';
+  // Read question text first, then instruction
+  var msg=q.text ? q.text+'. '+instruction : instruction;
   setTimeout(function(){speak(msg);},400);
 }
 function showQuizHelp(){
   var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  var touch=isMobile?'dedo':'mouse';
   var icon=isMobile?'👆':'🖱';
   var items=[
     {ico:icon,text:'<strong>Selecionar resposta:</strong> '+(isMobile?'Toque':'Clique')+' na alternativa correta'},
@@ -2524,8 +2471,8 @@ function showQuizHelp(){
     {ico:'✕',text:'<strong>Encerrar:</strong> Encerra o quiz e volta ao início'},
     {ico:isMobile?'👆👆':'🖱🖱',text:'<strong>Girar peça (quebra-cabeça):</strong> '+(isMobile?'Toque duplo':'Clique duplo')+' na peça para girar 90°'},
     {ico:isMobile?'👆↔':'🖱↔',text:'<strong>Arrastar peça (quebra-cabeça):</strong> '+(isMobile?'Pressione e arraste':'Clique e arraste')+' a peça até o buraco certo'},
-    {ico:'🎯',text:'<strong>Tentativas:</strong> O número de tentativas aparece no badge laranja no topo — ao zerar, a questão é marcada como errada'},
-    {ico:'🔊',text:'<strong>Ouvir enunciado:</strong> Toque no ícone 🔊 ao lado do texto da questão para ouvi-lo em voz alta'},
+    {ico:'🎯',text:'<strong>Tentativas:</strong> O número de tentativas aparece no badge laranja — ao zerar, a questão é marcada como errada'},
+    {ico:'🔊',text:'<strong>Ouvir enunciado:</strong> Toque no ícone 🔊 ao lado do texto da questão'},
     {ico:'🎤',text:'<strong>Resposta por voz:</strong> Quando disponível, toque em 🎤 e fale a resposta'},
   ];
   var rows=items.map(function(item){
@@ -2543,10 +2490,7 @@ function showQuizHelp(){
       rows+
       '<button class="btn btn-primary btn-block" style="margin-top:18px;" onclick="closeQuizHelp()">← Voltar</button>'+
     '</div>';
-  // Fechar ao tocar fora do box
-  overlay.addEventListener('click',function(e){
-    if(e.target===overlay)overlay.remove();
-  });
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
   document.body.appendChild(overlay);
 }
 function closeQuizHelp(){
@@ -2680,8 +2624,8 @@ function resetAddForm(){
   document.getElementById('photo-remove-wrap').style.display='none';
   document.getElementById('cfg-attempts').value='0';
   document.getElementById('cfg-result').value='score';
+  var vr=document.getElementById('cfg-voice-read');if(vr)vr.checked=false;
   var va=document.getElementById('cfg-voice-answer');if(va)va.checked=false;
-
   currentPhotoData=null;currentAlts=[];
   // Reset all type configs to defaults
   var ch=document.getElementById('clock-hour');if(ch)ch.value=10;
@@ -2722,13 +2666,14 @@ function saveQuestion(){
   }
   if((qtype==='puzzle')&&!currentPhotoData){showError('Adicione uma foto para o quebra-cabeça antes de salvar.');return;}
   var quiz=getQuiz(activeQuizId);if(!quiz)return;
+  var voiceRead=document.getElementById('cfg-voice-read')&&document.getElementById('cfg-voice-read').checked;
   var voiceAnswer=document.getElementById('cfg-voice-answer')&&document.getElementById('cfg-voice-answer').checked;
   var q={
     qtype:qtype,
     photo:currentPhotoData,
     text:document.getElementById('q-text').value.trim(),
     alts:(['photo','clock','money','doc','words','shapes','number','compare'].indexOf(qtype)!==-1)?currentAlts.map(function(a){return{text:a.text.trim(),correct:a.correct};}):undefined,
-    cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value,voiceAnswer:voiceAnswer}
+    cfg:{attempts:parseInt(document.getElementById('cfg-attempts').value)||0,result:document.getElementById('cfg-result').value,voiceRead:voiceRead,voiceAnswer:voiceAnswer}
   };
   // Type-specific config
   if(qtype==='clock'){q.clockHour=parseInt(document.getElementById('clock-hour').value)||10;q.clockMinute=parseInt(document.getElementById('clock-minute').value)||0;q.clockMode=document.getElementById('clock-mode')?document.getElementById('clock-mode').value:'analog';}
@@ -3812,7 +3757,20 @@ function renderQuizQ(){
   // Blink available actions after render
   setTimeout(function(){blinkCurrentAlts();},600);
 
-  // Help btn agora pulsa continuamente via CSS — sem animação manual
+  // Blink help button 5x and speak instructions
+  setTimeout(function(){
+    var hb=document.getElementById('quiz-help-btn');
+    if(hb){
+      var bc=0;
+      hb.style.animation='help-blink 0.5s ease-in-out';
+      var blinkInterval=setInterval(function(){
+        bc++;
+        hb.style.animation='none';
+        setTimeout(function(){hb.style.animation='help-blink 0.5s ease-in-out';},50);
+        if(bc>=5){clearInterval(blinkInterval);setTimeout(function(){hb.style.animation='';},600);}
+      },550);
+    }
+  },200);
   // Voice + nav run after render
   setTimeout(function(){
     var ae=document.getElementById('quiz-alts');
@@ -4867,38 +4825,8 @@ function dismissInstallBanner(){
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js')
     .then(function(reg){
-      // A) Força verificação de update imediata (iOS, Android, Desktop)
-      reg.update();
-
-      // C) Quando SW atualiza, recarrega a página automaticamente
-      reg.addEventListener('updatefound',function(){
-        var newWorker=reg.installing;
-        if(!newWorker)return;
-        newWorker.addEventListener('statechange',function(){
-          if(newWorker.state==='activated'&&navigator.serviceWorker.controller){
-            // Nova versão ativa — recarrega silenciosamente
-            window.location.reload();
-          }
-        });
-      });
-
-      // Recebe mensagem do SW quando nova versão ativa
-      navigator.serviceWorker.addEventListener('message',function(e){
-        if(e.data&&e.data.type==='SW_UPDATED'){
-          window.location.reload();
-        }
-      });
-
-      // Detecta quando SW muda de controlador (após skipWaiting)
-      navigator.serviceWorker.addEventListener('controllerchange',function(){
-        // Evita loop infinito de reload
-        if(!sessionStorage.getItem('sw_reloading')){
-          sessionStorage.setItem('sw_reloading','1');
-          window.location.reload();
-        } else {
-          sessionStorage.removeItem('sw_reloading');
-        }
-      });
+      console.log('SW registered');
+      reg.update(); // Always check for SW updates
     })
     .catch(function(){
       console.log('SW not available');
