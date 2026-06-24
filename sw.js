@@ -1,5 +1,5 @@
-// v9 - network-first + força atualização em todos os clientes
-var CACHE='quiz-fotos-v9';
+// v10 - força limpeza total de cache no iOS Safari
+var CACHE='quiz-fotos-v10';
 
 self.addEventListener('install',function(e){
   self.skipWaiting();
@@ -20,6 +20,7 @@ self.addEventListener('activate',function(e){
   self.clients.claim();
 });
 
+// Network-first — nunca usa cache, sempre busca da rede
 self.addEventListener('fetch',function(e){
   if(!e.request.url.startsWith('http'))return;
   e.respondWith(
