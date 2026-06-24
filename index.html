@@ -375,6 +375,57 @@ svg.hist-chart{display:block;max-width:100%;}
 .quiz-help-text{font-size:14px;line-height:1.5;color:var(--text);}
 .quiz-help-text strong{color:var(--blue);}
 
+
+/* ── LANDSCAPE (iPad/iPhone horizontal) ── */
+@media (orientation: landscape) and (max-height: 600px) {
+  /* Journey menor */
+  .journey-wrap{height:90px !important;}
+  .journey-character{font-size:22px !important;}
+  .journey-goal{font-size:26px !important;}
+  .journey-sun{font-size:20px !important;}
+  .journey-cloud{font-size:16px !important;}
+
+  /* Quiz image menor */
+  .quiz-img{max-height:22vh;}
+
+  /* Alternativas lado a lado (grid 2 colunas) */
+  #quiz-alts{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  #quiz-alts .alt-btn{
+    margin-bottom:0;
+    padding:9px 12px;
+    font-size:13px;
+  }
+  /* Clock wrap menor */
+  .clock-wrap{margin-bottom:8px;}
+  .number-compare{padding:8px;}
+  .number-big{font-size:52px !important;padding:10px 16px !important;}
+  .money-wrap{margin-bottom:8px;}
+  /* Título menor */
+  .quiz-title-box .quiz-text{font-size:14px !important;}
+  .quiz-title-box.has-text{padding:10px 14px;margin-bottom:10px;}
+  /* q-counter menor */
+  .q-counter{margin-bottom:6px;}
+}
+
+/* iPad landscape específico (tela maior) */
+@media (orientation: landscape) and (min-height: 601px) and (max-height: 900px) {
+  #quiz-alts{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  #quiz-alts .alt-btn{
+    margin-bottom:0;
+    font-size:14px;
+  }
+  .quiz-img{max-height:30vh;}
+  .journey-wrap{height:110px !important;}
+}
+
 </style>
 </head>
 <body>
