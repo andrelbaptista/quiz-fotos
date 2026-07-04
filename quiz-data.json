@@ -981,11 +981,11 @@
           "alts": [
             {
               "text": "Assaí",
-              "correct": true
+              "correct": false
             },
             {
               "text": "Petrópolis",
-              "correct": false
+              "correct": true
             },
             {
               "text": "Não sei",
