@@ -1038,7 +1038,7 @@
           "alts": [
             {
               "text": "3",
-              "correct": true
+              "correct": false
             },
             {
               "text": "1",
@@ -1046,7 +1046,7 @@
             },
             {
               "text": "2",
-              "correct": false
+              "correct": true
             }
           ],
           "cfg": {
