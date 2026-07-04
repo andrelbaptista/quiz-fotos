@@ -1094,7 +1094,7 @@
           "wordsText": "Azul, Azul, Azul",
           "wordsFontsize": 48,
           "wordsColor": "#0071e3",
-          "wordsHideUntilAnswer": false
+          "wordsHideUntilAnswer": true
         }
       ],
       "goalEmoji": "🏆",
